@@ -1,0 +1,13 @@
+{
+  "name": "@krontech/config",
+  "version": "0.0.0",
+  "private": true,
+  "exports": {
+    "./eslint-base": "./eslint-base.js",
+    "./tsconfig.base.json": "./tsconfig.base.json",
+    "./tailwind.base": "./tailwind.base.ts"
+  },
+  "scripts": {
+    "lint": "echo 'lint'"
+  }
+}

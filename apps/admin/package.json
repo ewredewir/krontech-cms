@@ -1,0 +1,11 @@
+{
+  "name": "@krontech/admin",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "echo 'dev'",
+    "build": "echo 'build'",
+    "start": "echo 'start'",
+    "lint": "echo 'lint'"
+  }
+}

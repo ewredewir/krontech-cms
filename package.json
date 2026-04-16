@@ -1,0 +1,15 @@
+{
+  "name": "krontech-cms",
+  "private": true,
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "test": "turbo run test"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0",
+    "@krontech/config": "workspace:*"
+  },
+  "packageManager": "pnpm@9.0.0"
+}

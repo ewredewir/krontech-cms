@@ -1,0 +1,8 @@
+module.exports = {
+  extends: ['eslint:recommended'],
+  rules: {
+    'no-console': 'error',
+    '@typescript-eslint/no-explicit-any': 'error',
+    '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+  },
+};
