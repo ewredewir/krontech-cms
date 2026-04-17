@@ -1,9 +1,17 @@
 {
   "name": "@krontech/types",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.0.1",
   "main": "./src/index.ts",
+  "types": "./src/index.ts",
   "scripts": {
-    "lint": "echo 'lint'"
+    "lint": "eslint src --ext .ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "^3.22.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0",
+    "@krontech/config": "workspace:*"
   }
 }
