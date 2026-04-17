@@ -11,7 +11,6 @@ import { UsersModule } from './users/users.module';
 import { HealthModule } from './health/health.module';
 import { LocaleMiddleware } from './common/middleware/locale.middleware';
 
-// Scaffolded empty modules (logic comes in Phase 3)
 import { PagesModule } from './pages/pages.module';
 import { BlogModule } from './blog/blog.module';
 import { ProductsModule } from './products/products.module';
@@ -22,6 +21,7 @@ import { CmsCacheModule } from './cache/cache.module';
 import { CmsSchedulerModule } from './scheduler/scheduler.module';
 import { AuditModule } from './audit/audit.module';
 import { QueueModule } from './queue/queue.module';
+import { RedirectsModule } from './redirects/redirects.module';
 
 @Module({
   imports: [
@@ -58,6 +58,7 @@ import { QueueModule } from './queue/queue.module';
     CmsSchedulerModule,
     AuditModule,
     QueueModule,
+    RedirectsModule,
   ],
   providers: [
     {

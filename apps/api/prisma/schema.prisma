@@ -180,6 +180,8 @@ model Product {
   id          String        @id @default(uuid())
   slug        Json          // LocaleMap
   status      ContentStatus @default(DRAFT)
+  publishedAt DateTime?
+  scheduledAt DateTime?
   name        Json          // LocaleMap
   tagline     Json          // LocaleMap
   description Json          // LocaleMap rich text
