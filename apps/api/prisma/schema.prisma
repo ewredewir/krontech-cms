@@ -1,0 +1,258 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String
+  role         UserRole  @default(EDITOR)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  pages            Page[]        @relation("CreatedPages")
+  pagesUpdated     Page[]        @relation("UpdatedPages")
+  blogPosts        BlogPost[]    @relation("BlogPostAuthor")
+  blogPostsCreated BlogPost[]    @relation("BlogPostCreatedBy")
+  blogPostsUpdated BlogPost[]    @relation("BlogPostUpdatedBy")
+  productsCreated  Product[]     @relation("ProductCreatedBy")
+  productsUpdated  Product[]     @relation("ProductUpdatedBy")
+  mediaUploads     Media[]
+  auditLogs        AuditLog[]
+  pageVersions     PageVersion[]
+}
+
+enum UserRole {
+  ADMIN
+  EDITOR
+}
+
+model Media {
+  id          String    @id @default(uuid())
+  filename    String
+  mimeType    String
+  size        Int
+  width       Int?
+  height      Int?
+  s3Key       String
+  publicUrl   String
+  blurDataUrl String?
+  altText     Json      // LocaleMap { tr: string, en: string }
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  uploadedById String
+  uploadedBy   User           @relation(fields: [uploadedById], references: [id])
+  seoMetas     SeoMeta[]
+  productMedia ProductMedia[]
+  blogPosts    BlogPost[]     @relation("BlogFeaturedImage")
+}
+
+model SeoMeta {
+  id              String  @id @default(uuid())
+  metaTitle       Json    // LocaleMap
+  metaDescription Json    // LocaleMap
+  canonical       String?
+  robots          String  @default("index, follow")
+  jsonLdType      String?
+  jsonLdOverride  Json?
+
+  ogImageId String?
+  ogImage   Media?  @relation(fields: [ogImageId], references: [id])
+
+  page     Page?
+  blogPost BlogPost?
+  product  Product?
+}
+
+model PageComponent {
+  id        String        @id @default(uuid())
+  type      ComponentType
+  order     Int
+  data      Json          // typed per ComponentType — validated by Prisma extension
+  isVisible Boolean       @default(true)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  pageId String
+  page   Page   @relation(fields: [pageId], references: [id], onDelete: Cascade)
+}
+
+enum ComponentType {
+  hero
+  text_block
+  cta
+  features_grid
+  faq
+  media_block
+  form_embed
+}
+
+model Page {
+  id          String        @id @default(uuid())
+  slug        Json          // LocaleMap
+  status      ContentStatus @default(DRAFT)
+  publishedAt DateTime?
+  scheduledAt DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  components PageComponent[]
+  seoMetaId  String?         @unique
+  seo        SeoMeta?        @relation(fields: [seoMetaId], references: [id])
+  versions   PageVersion[]
+
+  createdById String
+  createdBy   User   @relation("CreatedPages", fields: [createdById], references: [id])
+  updatedById String
+  updatedBy   User   @relation("UpdatedPages", fields: [updatedById], references: [id])
+}
+
+model PageVersion {
+  id            String   @id @default(uuid())
+  snapshot      Json     // full serialized Page + components
+  versionNumber Int
+  publishedAt   DateTime @default(now())
+
+  pageId        String
+  page          Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  publishedById String
+  publishedBy   User     @relation(fields: [publishedById], references: [id])
+}
+
+enum ContentStatus {
+  DRAFT
+  PUBLISHED
+  SCHEDULED
+}
+
+model Category {
+  id        String     @id @default(uuid())
+  slug      String     @unique
+  name      Json       // LocaleMap
+  blogPosts BlogPost[]
+}
+
+model Tag {
+  id        String     @id @default(uuid())
+  slug      String     @unique
+  name      Json       // LocaleMap
+  blogPosts BlogPost[]
+}
+
+model BlogPost {
+  id                 String        @id @default(uuid())
+  slug               Json          // LocaleMap
+  status             ContentStatus @default(DRAFT)
+  publishedAt        DateTime?
+  scheduledAt        DateTime?
+  title              Json          // LocaleMap
+  excerpt            Json          // LocaleMap
+  body               Json          // LocaleMap (rich text / markdown per locale)
+  readingTimeMinutes Int           @default(0)
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  authorId        String
+  author          User      @relation("BlogPostAuthor", fields: [authorId], references: [id])
+  categoryId      String?
+  category        Category? @relation(fields: [categoryId], references: [id])
+  tags            Tag[]
+  featuredImageId String?
+  featuredImage   Media?    @relation("BlogFeaturedImage", fields: [featuredImageId], references: [id])
+  seoMetaId       String?   @unique
+  seo             SeoMeta?  @relation(fields: [seoMetaId], references: [id])
+
+  createdById String
+  createdBy   User   @relation("BlogPostCreatedBy", fields: [createdById], references: [id])
+  updatedById String
+  updatedBy   User   @relation("BlogPostUpdatedBy", fields: [updatedById], references: [id])
+}
+
+model Product {
+  id          String        @id @default(uuid())
+  slug        Json          // LocaleMap
+  status      ContentStatus @default(DRAFT)
+  name        Json          // LocaleMap
+  tagline     Json          // LocaleMap
+  description Json          // LocaleMap rich text
+  features    Json          // Array<{ title: LocaleMap, description: LocaleMap }>
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  media     ProductMedia[]
+  seoMetaId String?        @unique
+  seo       SeoMeta?       @relation(fields: [seoMetaId], references: [id])
+
+  createdById String
+  createdBy   User   @relation("ProductCreatedBy", fields: [createdById], references: [id])
+  updatedById String
+  updatedBy   User   @relation("ProductUpdatedBy", fields: [updatedById], references: [id])
+}
+
+model ProductMedia {
+  order Float // fractional indexing for drag-reorder
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  mediaId   String
+  media     Media   @relation(fields: [mediaId], references: [id])
+
+  @@id([productId, mediaId])
+}
+
+model FormDefinition {
+  id          String           @id @default(uuid())
+  name        String
+  slug        String           @unique
+  fields      Json             // Array<FormField>
+  webhookUrl  String?
+  notifyEmail String?
+  isActive    Boolean          @default(true)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  submissions FormSubmission[]
+}
+
+model FormSubmission {
+  id           String   @id @default(uuid())
+  data         Json
+  ip           String
+  userAgent    String
+  consentGiven Boolean
+  createdAt    DateTime @default(now())
+
+  formId String
+  form   FormDefinition @relation(fields: [formId], references: [id])
+}
+
+model Redirect {
+  id          String   @id @default(uuid())
+  source      String   @unique
+  destination String
+  statusCode  Int      @default(301)
+  isActive    Boolean  @default(true)
+  hitCount    Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  action     String
+  entityType String
+  entityId   String
+  diff       Json?
+  ipAddress  String
+  createdAt  DateTime @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+}
