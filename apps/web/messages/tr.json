@@ -1,0 +1,154 @@
+{
+  "nav": {
+    "products": "Ürünler",
+    "resources": "Kaynaklar",
+    "blog": "Blog",
+    "about": "Hakkımızda",
+    "contact": "İletişim",
+    "demo": "Demo Talebi",
+    "search": "Ara",
+    "openMenu": "Menüyü aç",
+    "closeMenu": "Menüyü kapat"
+  },
+  "hero": {
+    "sectionLabel": "Ana sayfa slayt alanı"
+  },
+  "products": {
+    "sectionTitle": "Ürünlerimiz",
+    "sectionSubtitle": "Krontech siber güvenlik ürün ailesi",
+    "learnMore": "Detaylı Bilgi",
+    "sectionLabel": "Ürün kataloğu"
+  },
+  "kuppingercole": {
+    "sectionLabel": "KuppingerCole raporu",
+    "badge": "KuppingerCole Liderlik Ödülü",
+    "title": "PAM Alanında Overall Leader",
+    "body": "Krontech, KuppingerCole Leadership Compass Privileged Access Management raporunda Overall Leader olarak değerlendirildi. Bu değerlendirme; ürün güçlülüğü, pazar varlığı ve yenilikçilik kriterleri baz alınarak yapılmaktadır.",
+    "cta": "Raporu İncele"
+  },
+  "whyKron": {
+    "sectionLabel": "Neden Kron bölümü",
+    "title": "Neden Kron?",
+    "subtitle": "Siber güvenlikte güvenilir çözüm ortağınız",
+    "reason1Title": "Yerli ve Milli",
+    "reason1Body": "Türkiye merkezli Ar-Ge ile geliştirilen, yerli ve milli siber güvenlik çözümleri.",
+    "reason2Title": "Kanıtlanmış Başarı",
+    "reason2Body": "6 kıta, 35+ ülke ve 1500+ projede güvenilir siber güvenlik çözümleri.",
+    "reason3Title": "Kapsamlı Destek",
+    "reason3Body": "7/24 teknik destek ve sertifikalı uzman ekibi ile yanınızdayız.",
+    "reason4Title": "Ödüllü Ürünler",
+    "reason4Body": "KuppingerCole, Gartner ve diğer bağımsız analistler tarafından tanınan ürünler."
+  },
+  "stats": {
+    "sectionLabel": "Rakamlarla Kron",
+    "sectionTitle": "Rakamlarla Kron",
+    "continents": "Kıta",
+    "continentsValue": "6",
+    "countries": "Ülke",
+    "countriesValue": "35+",
+    "partners": "İş Ortağı",
+    "partnersValue": "200+",
+    "projects": "Proje",
+    "projectsValue": "1500+"
+  },
+  "video": {
+    "sectionLabel": "Video bölümü",
+    "title": "Anadolu Efes Başarı Hikayesi",
+    "body": "Anadolu Efes, Krontech PAM çözümü ile kritik sistemlerine erişim güvenliğini nasıl sağladı?",
+    "cta": "Videoyu İzle",
+    "playLabel": "Videoyu oynat"
+  },
+  "blog": {
+    "sectionLabel": "Blog bölümü",
+    "sectionTitle": "Blog & Haberler",
+    "readMore": "Devamını Oku",
+    "featuredTitle": "Öne Çıkanlar",
+    "allPosts": "Tüm Yazılar",
+    "blogBadge": "Blog",
+    "haberBadge": "Haber"
+  },
+  "contact": {
+    "sectionLabel": "İletişim formu",
+    "sectionTitle": "Bizimle İletişime Geçin",
+    "sectionSubtitle": "Ürünlerimiz ve çözümlerimiz hakkında bilgi almak için formu doldurun.",
+    "firstName": "İsim",
+    "lastName": "Soyisim",
+    "email": "E-posta",
+    "title": "Ünvan",
+    "department": "Departman",
+    "company": "Şirket",
+    "phone": "Telefon",
+    "callbackPreference": "Geri Arama Tercihi",
+    "message": "Mesajınız",
+    "kvkk1": "Kişisel verilerimin işlenmesine ilişkin aydınlatma metnini okudum ve onaylıyorum.",
+    "kvkk2": "Ticari elektronik ileti almayı kabul ediyorum.",
+    "submit": "Gönder",
+    "submitting": "Gönderiliyor...",
+    "successMessage": "Mesajınız başarıyla iletildi. En kısa sürede sizinle iletişime geçeceğiz.",
+    "errorMessage": "Bir hata oluştu. Lütfen tekrar deneyin.",
+    "required": "Bu alan zorunludur.",
+    "invalidEmail": "Geçerli bir e-posta adresi giriniz.",
+    "selectDepartment": "Departman seçiniz",
+    "deptIT": "Bilgi Teknolojileri",
+    "deptSecurity": "Güvenlik",
+    "deptManagement": "Yönetim",
+    "deptOther": "Diğer"
+  },
+  "demo": {
+    "sectionTitle": "Demo Talebi",
+    "company": "Şirket Adı",
+    "name": "Adınız Soyadınız",
+    "email": "E-posta",
+    "phone": "Telefon",
+    "productInterest": "İlgilendiğiniz Ürün",
+    "message": "Mesajınız",
+    "kvkk": "Kişisel verilerimin işlenmesine ilişkin aydınlatma metnini okudum ve onaylıyorum.",
+    "submit": "Demo Talep Et",
+    "submitting": "Gönderiliyor...",
+    "successMessage": "Demo talebiniz alındı. En kısa sürede sizinle iletişime geçeceğiz.",
+    "selectProduct": "Ürün seçiniz"
+  },
+  "footer": {
+    "sectionLabel": "Site alt bilgisi",
+    "newsletter": "Bültenimize Abone Olun",
+    "newsletterPlaceholder": "E-posta adresiniz",
+    "newsletterSubmit": "Abone Ol",
+    "copyright": "© {year} Krontech. Tüm hakları saklıdır.",
+    "privacy": "Gizlilik Politikası",
+    "kvkk": "KVKK Aydınlatma Metni",
+    "address": "Adres",
+    "phone": "Telefon",
+    "email": "E-posta"
+  },
+  "common": {
+    "readMore": "Devamını Oku",
+    "learnMore": "Daha Fazla Bilgi",
+    "viewAll": "Tümünü Gör",
+    "backToBlog": "Blog'a Dön",
+    "backToProducts": "Ürünlere Dön",
+    "home": "Ana Sayfa",
+    "close": "Kapat",
+    "open": "Aç",
+    "loading": "Yükleniyor...",
+    "notFound": "Sayfa bulunamadı"
+  },
+  "announcement": {
+    "text": "Krontech'in yeni ürünleri hakkında bilgi almak için tıklayın.",
+    "cta": "Daha Fazla Bilgi"
+  },
+  "resources": {
+    "sectionTitle": "Kaynaklar",
+    "subtitle": "Teknik dokümanlar, raporlar ve vaka çalışmaları",
+    "whitepapers": "Teknik Raporlar",
+    "caseStudies": "Vaka Çalışmaları",
+    "datasheets": "Ürün Broşürleri",
+    "download": "İndir"
+  },
+  "about": {
+    "sectionTitle": "Hakkımızda",
+    "subtitle": "Krontech kimdir?",
+    "mission": "Misyonumuz",
+    "vision": "Vizyonumuz",
+    "values": "Değerlerimiz"
+  }
+}

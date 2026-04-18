@@ -1,0 +1,154 @@
+{
+  "nav": {
+    "products": "Products",
+    "resources": "Resources",
+    "blog": "Blog",
+    "about": "About Us",
+    "contact": "Contact",
+    "demo": "Request Demo",
+    "search": "Search",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu"
+  },
+  "hero": {
+    "sectionLabel": "Homepage slider"
+  },
+  "products": {
+    "sectionTitle": "Our Products",
+    "sectionSubtitle": "Krontech cybersecurity product family",
+    "learnMore": "Learn More",
+    "sectionLabel": "Product catalog"
+  },
+  "kuppingercole": {
+    "sectionLabel": "KuppingerCole report",
+    "badge": "KuppingerCole Leadership Award",
+    "title": "Overall Leader in PAM",
+    "body": "Krontech was evaluated as an Overall Leader in the KuppingerCole Leadership Compass Privileged Access Management report. This evaluation is based on product strength, market presence, and innovation criteria.",
+    "cta": "View Report"
+  },
+  "whyKron": {
+    "sectionLabel": "Why Kron section",
+    "title": "Why Kron?",
+    "subtitle": "Your trusted partner in cybersecurity",
+    "reason1Title": "Domestic & National",
+    "reason1Body": "Cybersecurity solutions developed with Turkey-based R&D, domestic and national.",
+    "reason2Title": "Proven Success",
+    "reason2Body": "Trusted cybersecurity solutions across 6 continents, 35+ countries, and 1500+ projects.",
+    "reason3Title": "Comprehensive Support",
+    "reason3Body": "24/7 technical support and certified expert team at your service.",
+    "reason4Title": "Award-Winning Products",
+    "reason4Body": "Products recognized by KuppingerCole, Gartner, and other independent analysts."
+  },
+  "stats": {
+    "sectionLabel": "Kron by the numbers",
+    "sectionTitle": "Kron by the Numbers",
+    "continents": "Continents",
+    "continentsValue": "6",
+    "countries": "Countries",
+    "countriesValue": "35+",
+    "partners": "Partners",
+    "partnersValue": "200+",
+    "projects": "Projects",
+    "projectsValue": "1500+"
+  },
+  "video": {
+    "sectionLabel": "Video section",
+    "title": "Anadolu Efes Success Story",
+    "body": "How did Anadolu Efes ensure access security for its critical systems with Krontech PAM solution?",
+    "cta": "Watch Video",
+    "playLabel": "Play video"
+  },
+  "blog": {
+    "sectionLabel": "Blog section",
+    "sectionTitle": "Blog & News",
+    "readMore": "Read More",
+    "featuredTitle": "Featured",
+    "allPosts": "All Posts",
+    "blogBadge": "Blog",
+    "haberBadge": "News"
+  },
+  "contact": {
+    "sectionLabel": "Contact form",
+    "sectionTitle": "Get in Touch",
+    "sectionSubtitle": "Fill out the form to get information about our products and solutions.",
+    "firstName": "First Name",
+    "lastName": "Last Name",
+    "email": "Email",
+    "title": "Title",
+    "department": "Department",
+    "company": "Company",
+    "phone": "Phone",
+    "callbackPreference": "Callback Preference",
+    "message": "Message",
+    "kvkk1": "I have read and agree to the personal data processing disclosure text.",
+    "kvkk2": "I agree to receive commercial electronic messages.",
+    "submit": "Submit",
+    "submitting": "Submitting...",
+    "successMessage": "Your message has been submitted. We will contact you as soon as possible.",
+    "errorMessage": "An error occurred. Please try again.",
+    "required": "This field is required.",
+    "invalidEmail": "Please enter a valid email address.",
+    "selectDepartment": "Select department",
+    "deptIT": "Information Technology",
+    "deptSecurity": "Security",
+    "deptManagement": "Management",
+    "deptOther": "Other"
+  },
+  "demo": {
+    "sectionTitle": "Request Demo",
+    "company": "Company Name",
+    "name": "Full Name",
+    "email": "Email",
+    "phone": "Phone",
+    "productInterest": "Product of Interest",
+    "message": "Message",
+    "kvkk": "I have read and agree to the personal data processing disclosure text.",
+    "submit": "Request Demo",
+    "submitting": "Submitting...",
+    "successMessage": "Your demo request has been received. We will contact you as soon as possible.",
+    "selectProduct": "Select product"
+  },
+  "footer": {
+    "sectionLabel": "Site footer",
+    "newsletter": "Subscribe to Our Newsletter",
+    "newsletterPlaceholder": "Your email address",
+    "newsletterSubmit": "Subscribe",
+    "copyright": "© {year} Krontech. All rights reserved.",
+    "privacy": "Privacy Policy",
+    "kvkk": "GDPR Notice",
+    "address": "Address",
+    "phone": "Phone",
+    "email": "Email"
+  },
+  "common": {
+    "readMore": "Read More",
+    "learnMore": "Learn More",
+    "viewAll": "View All",
+    "backToBlog": "Back to Blog",
+    "backToProducts": "Back to Products",
+    "home": "Home",
+    "close": "Close",
+    "open": "Open",
+    "loading": "Loading...",
+    "notFound": "Page not found"
+  },
+  "announcement": {
+    "text": "Learn about Krontech's new products and solutions.",
+    "cta": "Learn More"
+  },
+  "resources": {
+    "sectionTitle": "Resources",
+    "subtitle": "Technical documents, reports, and case studies",
+    "whitepapers": "Whitepapers",
+    "caseStudies": "Case Studies",
+    "datasheets": "Product Datasheets",
+    "download": "Download"
+  },
+  "about": {
+    "sectionTitle": "About Us",
+    "subtitle": "Who is Krontech?",
+    "mission": "Our Mission",
+    "vision": "Our Vision",
+    "values": "Our Values"
+  }
+}

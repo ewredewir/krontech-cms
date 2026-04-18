@@ -3,10 +3,38 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "dev": "echo 'dev'",
-    "build": "echo 'build'",
-    "start": "echo 'start'",
-    "lint": "echo 'lint'",
-    "test": "echo 'test'"
+    "dev": "next dev -p 3000",
+    "build": "next build",
+    "start": "next start -p 3000",
+    "lint": "next lint",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "next": "14.2.29",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "next-intl": "^3.26.3",
+    "swiper": "^11.1.14",
+    "react-hook-form": "^7.54.2",
+    "zod": "^3.24.1",
+    "intl-tel-input": "^24.6.0",
+    "@hookform/resolvers": "^3.9.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.9",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "typescript": "^5.7.2",
+    "tailwindcss": "^3.4.17",
+    "postcss": "^8.4.49",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "14.2.29",
+    "vitest": "^2.1.8",
+    "@vitejs/plugin-react": "^4.3.4",
+    "@testing-library/react": "^16.1.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/user-event": "^14.5.2",
+    "jsdom": "^25.0.1"
   }
 }

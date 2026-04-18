@@ -1,0 +1,133 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+::selection {
+  background: #1663ff;
+  color: #fff;
+}
+
+* {
+  border-radius: 0 !important;
+}
+
+body {
+  background: #f5f6f8;
+  font-family: Roboto, sans-serif;
+  font-size: 14px;
+  overflow-x: hidden;
+  color: #212529;
+}
+
+.bg-blue {
+  background: #1563ff;
+  padding: 0 3px;
+  color: #fff;
+}
+
+.dark-form input,
+.dark-form textarea,
+.dark-form select {
+  background: transparent;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  height: 46px;
+  padding: 0 16px;
+  width: 100%;
+  outline: none;
+  font-size: 14px;
+}
+
+.dark-form textarea {
+  height: auto;
+  padding: 12px 16px;
+  resize: vertical;
+}
+
+.dark-form input::placeholder,
+.dark-form textarea::placeholder {
+  color: rgba(255, 255, 255, 0.67);
+}
+
+.dark-form input:focus,
+.dark-form textarea:focus,
+.dark-form select:focus {
+  border-color: #1563ff;
+}
+
+.dark-form select option {
+  background: #333;
+  color: #fff;
+}
+
+/* Swiper pagination pills */
+.swiper-pagination-bullet {
+  width: 20px !important;
+  height: 4px !important;
+  border-radius: 0 !important;
+  background: rgba(255, 255, 255, 0.5) !important;
+  opacity: 1 !important;
+}
+
+.swiper-pagination-bullet-active {
+  width: 40px !important;
+  background: #fff !important;
+}
+
+/* Nav dropdown transition */
+.nav-dropdown {
+  visibility: hidden;
+  opacity: 0;
+  transition: visibility 0s linear 0.3s, opacity 0.3s linear;
+}
+
+.nav-item:hover .nav-dropdown {
+  visibility: visible;
+  opacity: 1;
+  transition-delay: 0s;
+}
+
+/* Active nav item indicator */
+.nav-link-active::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: #1563ff;
+}
+
+/* Bullet list with check image */
+.check-list {
+  list-style: none;
+  padding: 0;
+}
+
+.check-list li {
+  padding-left: 24px;
+  position: relative;
+  margin-bottom: 8px;
+  background-image: url('/assets/images/check.png');
+  background-repeat: no-repeat;
+  background-position: left center;
+  background-size: 16px 16px;
+}
+
+/* Contact section overlay */
+.contact-section {
+  position: relative;
+}
+
+.contact-section::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.83);
+  z-index: 0;
+}
+
+.contact-section > * {
+  position: relative;
+  z-index: 1;
+}
