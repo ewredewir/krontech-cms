@@ -1,12 +1,37 @@
 import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import type { Locale } from '@/lib/i18n';
-import { blogPosts } from '@/fixtures/blog';
+import { blogPosts as fixturePosts } from '@/fixtures/blog';
+import type { BlogPost } from '@/fixtures/types';
+import { apiFetch } from '@/lib/api';
 import { BlogCard } from '@/components/shared/BlogCard';
 import { PageBanner } from '@/components/shared/PageBanner';
 import { Breadcrumb } from '@/components/shared/Breadcrumb';
+import { BLUR_PLACEHOLDER } from '@/lib/media';
 
 export const revalidate = 60;
+
+interface ApiBlogPost {
+  id: string;
+  slug: { tr: string; en: string };
+  title: { tr: string; en: string };
+  excerpt: { tr: string; en: string };
+  publishedAt: string | null;
+  category: { slug: string; name: { tr: string; en: string } } | null;
+  featuredImage: { publicUrl: string; altText: { tr: string; en: string } | null; blurDataUrl: string | null } | null;
+}
+
+function adaptPost(p: ApiBlogPost): BlogPost {
+  return {
+    id: p.id,
+    slug: p.slug,
+    title: p.title,
+    excerpt: p.excerpt,
+    category: p.category?.slug === 'haber' ? 'haber' : 'blog',
+    image: p.featuredImage?.publicUrl ?? BLUR_PLACEHOLDER,
+    publishedAt: p.publishedAt ?? new Date().toISOString(),
+  };
+}
 
 interface PageProps {
   params: { locale: string };
@@ -34,21 +59,15 @@ export default async function BlogListPage({ params }: PageProps) {
   setRequestLocale(locale);
   const t = await getTranslations({ locale, namespace: 'blog' });
 
-  async function getPosts() {
-    try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/v1/public/blog/posts?locale=${locale}`,
-        { next: { revalidate: 60 } }
-      );
-      if (!res.ok) return blogPosts;
-      const data = await res.json() as unknown;
-      return Array.isArray(data) ? data : blogPosts;
-    } catch {
-      return blogPosts;
-    }
-  }
+  const apiPosts = await apiFetch<ApiBlogPost[]>(
+    `/v1/public/blog/posts/${locale}`,
+    { next: { revalidate: 60 } },
+  );
+  const posts: BlogPost[] =
+    Array.isArray(apiPosts) && apiPosts.length > 0
+      ? apiPosts.map(adaptPost)
+      : fixturePosts;
 
-  const posts = await getPosts();
   const [featured, ...rest] = posts;
 
   return (

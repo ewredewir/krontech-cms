@@ -281,6 +281,17 @@ export class ProductsService {
     return product;
   }
 
+  async findAllPublished() {
+    return this.prisma.product.findMany({
+      where: { status: 'PUBLISHED' },
+      include: {
+        media: { orderBy: { order: 'asc' }, include: { media: true } },
+        seo: true,
+      },
+      orderBy: { publishedAt: 'desc' },
+    });
+  }
+
   async getAllSlugs(): Promise<Array<{ slug: LocaleMap }>> {
     const products = await this.prisma.product.findMany({
       where: { status: 'PUBLISHED' },

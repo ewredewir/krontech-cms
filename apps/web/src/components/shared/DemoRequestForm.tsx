@@ -28,6 +28,7 @@ export function DemoRequestForm({ locale }: DemoRequestFormProps) {
   const t = useTranslations('demo');
   const [success, setSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const {
     register,
@@ -35,11 +36,36 @@ export function DemoRequestForm({ locale }: DemoRequestFormProps) {
     formState: { errors },
   } = useForm<FormValues>({ resolver: zodResolver(schema) });
 
-  async function onSubmit(_data: FormValues) {
+  async function onSubmit(data: FormValues) {
     setSubmitting(true);
-    await new Promise((r) => setTimeout(r, 500));
-    setSubmitting(false);
-    setSuccess(true);
+    setSubmitError(null);
+
+    const { kvkk, ...fieldData } = data;
+
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/v1/public/forms/demo/submit`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            data: fieldData,
+            consentGiven: kvkk === true,
+            _honeypot: '',
+          }),
+        },
+      );
+
+      if (!res.ok) {
+        throw new Error(`Submission failed: ${res.status}`);
+      }
+
+      setSuccess(true);
+    } catch {
+      setSubmitError(locale === 'tr' ? 'Bir hata oluştu. Lütfen tekrar deneyin.' : 'An error occurred. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   const inputClass = 'border border-gray-200 h-[46px] px-4 w-full text-sm outline-none focus:border-primary bg-white text-heading';
@@ -104,6 +130,9 @@ export function DemoRequestForm({ locale }: DemoRequestFormProps) {
           {errors.kvkk && <p className={errorClass} role="alert">{errors.kvkk.message}</p>}
         </div>
       </div>
+      {submitError && (
+        <p role="alert" className="text-error text-sm mt-4">{submitError}</p>
+      )}
       <button
         type="submit"
         disabled={submitting}

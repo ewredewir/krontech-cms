@@ -5,41 +5,66 @@ import Link from 'next/link';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { locales } from '@/lib/i18n';
 import type { Locale } from '@/lib/i18n';
-import { products } from '@/fixtures/products';
+import { products as fixtureProducts } from '@/fixtures/products';
+import type { ProductCard } from '@/fixtures/types';
+import { apiFetch } from '@/lib/api';
 import { PageBanner } from '@/components/shared/PageBanner';
 import { Breadcrumb } from '@/components/shared/Breadcrumb';
 import { SeoHead } from '@/components/shared/SeoHead';
 import { BLUR_PLACEHOLDER } from '@/lib/media';
-import type { ProductCard } from '@/fixtures/types';
 
 export const revalidate = 60;
+
+interface ApiProduct {
+  id: string;
+  slug: { tr: string; en: string };
+  name: { tr: string; en: string };
+  tagline: { tr: string; en: string } | null;
+  description: { tr: string; en: string } | null;
+  media: Array<{ order: number; media: { publicUrl: string; altText: { tr: string; en: string } | null; blurDataUrl: string | null } }>;
+}
+
+function adaptProduct(p: ApiProduct, locale: Locale): ProductCard {
+  return {
+    id: p.id,
+    slug: p.slug[locale],
+    name: p.name,
+    description: p.tagline ?? p.description ?? { tr: '', en: '' },
+    bullets: [],
+    image: p.media[0]?.media.publicUrl ?? BLUR_PLACEHOLDER,
+    href: '',
+    faqs: [],
+  };
+}
 
 interface PageProps {
   params: { locale: string; slug: string };
 }
 
 export async function generateStaticParams() {
+  const apiSlugs = await apiFetch<Array<{ slug: { tr: string; en: string } }>>(
+    '/v1/public/products/all-slugs',
+  );
+  const slugMaps = apiSlugs ?? fixtureProducts.map((p) => ({ slug: { tr: p.slug, en: p.slug } }));
   return locales.flatMap((locale) =>
-    products.map((product) => ({ locale, slug: product.slug }))
+    slugMaps
+      .map((item) => ({ locale, slug: item.slug[locale as Locale] }))
+      .filter((p) => Boolean(p.slug)),
   );
 }
 
-async function getProduct(slug: string): Promise<ProductCard | null> {
-  try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/v1/public/products/${slug}`,
-      { next: { revalidate: 60 } }
-    );
-    if (!res.ok) throw new Error('not found');
-    return await res.json() as ProductCard;
-  } catch {
-    return products.find((p) => p.slug === slug) ?? null;
-  }
+async function getProduct(locale: Locale, slug: string): Promise<ProductCard | null> {
+  const data = await apiFetch<ApiProduct>(
+    `/v1/public/products/${locale}/${slug}`,
+    { next: { revalidate: 60 } },
+  );
+  if (data) return adaptProduct(data, locale);
+  return fixtureProducts.find((p) => p.slug === slug) ?? null;
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const locale = params.locale as Locale;
-  const product = await getProduct(params.slug);
+  const product = await getProduct(locale, params.slug);
   if (!product) return { title: 'Not Found' };
 
   return {
@@ -63,7 +88,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function ProductDetailPage({ params }: PageProps) {
   const locale = params.locale as Locale;
   setRequestLocale(locale);
-  const product = await getProduct(params.slug);
+  const product = await getProduct(locale, params.slug);
   if (!product) notFound();
 
   const t = await getTranslations({ locale, namespace: 'products' });
@@ -79,20 +104,22 @@ export default async function ProductDetailPage({ params }: PageProps) {
     offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
   };
 
-  const faqJsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    mainEntity: product.faqs.map((faq) => ({
-      '@type': 'Question',
-      name: faq.question[locale],
-      acceptedAnswer: { '@type': 'Answer', text: faq.answer[locale] },
-    })),
-  };
+  const faqJsonLd = product.faqs.length > 0
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'FAQPage',
+        mainEntity: product.faqs.map((faq) => ({
+          '@type': 'Question',
+          name: faq.question[locale],
+          acceptedAnswer: { '@type': 'Answer', text: faq.answer[locale] },
+        })),
+      }
+    : null;
 
   return (
     <>
       <SeoHead jsonLd={productJsonLd} />
-      <SeoHead jsonLd={faqJsonLd} />
+      {faqJsonLd && <SeoHead jsonLd={faqJsonLd} />}
       <PageBanner title={product.name[locale]} bgImage={product.image} />
       <Breadcrumb
         locale={locale}
@@ -106,11 +133,13 @@ export default async function ProductDetailPage({ params }: PageProps) {
           <div>
             <h1 className="text-heading text-h1 font-semibold mb-4">{product.name[locale]}</h1>
             <p className="text-secondary-text text-lead leading-7 mb-6">{product.description[locale]}</p>
-            <ul className="check-list mb-6">
-              {product.bullets.map((bullet, i) => (
-                <li key={i} className="text-secondary-text text-body">{bullet[locale]}</li>
-              ))}
-            </ul>
+            {product.bullets.length > 0 && (
+              <ul className="check-list mb-6">
+                {product.bullets.map((bullet, i) => (
+                  <li key={i} className="text-secondary-text text-body">{bullet[locale]}</li>
+                ))}
+              </ul>
+            )}
             <Link
               href={`/${locale}/${locale === 'tr' ? 'iletisim' : 'contact'}`}
               className="inline-block bg-primary hover:bg-primary-light text-white font-medium px-8 py-3 text-sm transition-colors"
@@ -132,24 +161,26 @@ export default async function ProductDetailPage({ params }: PageProps) {
           </div>
         </div>
 
-        <section aria-label="FAQ" className="mb-12">
-          <h2 className="text-heading text-h3 font-bold mb-8">
-            {locale === 'tr' ? 'Sık Sorulan Sorular' : 'Frequently Asked Questions'}
-          </h2>
-          <dl className="space-y-4">
-            {product.faqs.map((faq, i) => (
-              <details key={i} className="bg-white shadow-card p-6">
-                <summary className="font-semibold text-heading cursor-pointer list-none flex justify-between items-center">
-                  {faq.question[locale]}
-                  <span aria-hidden="true" className="text-primary text-xl ml-4">+</span>
-                </summary>
-                <dd className="mt-4 text-secondary-text text-body leading-7">
-                  {faq.answer[locale]}
-                </dd>
-              </details>
-            ))}
-          </dl>
-        </section>
+        {product.faqs.length > 0 && (
+          <section aria-label="FAQ" className="mb-12">
+            <h2 className="text-heading text-h3 font-bold mb-8">
+              {locale === 'tr' ? 'Sık Sorulan Sorular' : 'Frequently Asked Questions'}
+            </h2>
+            <dl className="space-y-4">
+              {product.faqs.map((faq, i) => (
+                <details key={i} className="bg-white shadow-card p-6">
+                  <summary className="font-semibold text-heading cursor-pointer list-none flex justify-between items-center">
+                    {faq.question[locale]}
+                    <span aria-hidden="true" className="text-primary text-xl ml-4">+</span>
+                  </summary>
+                  <dd className="mt-4 text-secondary-text text-body leading-7">
+                    {faq.answer[locale]}
+                  </dd>
+                </details>
+              ))}
+            </dl>
+          </section>
+        )}
 
         <Link
           href={`/${locale}/products`}

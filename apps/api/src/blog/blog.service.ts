@@ -265,6 +265,19 @@ export class BlogService {
     return post;
   }
 
+  async findAllPublished() {
+    return this.prisma.blogPost.findMany({
+      where: { status: 'PUBLISHED' },
+      include: {
+        author: { select: { id: true, email: true } },
+        category: true,
+        featuredImage: true,
+        seo: true,
+      },
+      orderBy: { publishedAt: 'desc' },
+    });
+  }
+
   async getAllSlugs(): Promise<Array<{ slug: LocaleMap }>> {
     const posts = await this.prisma.blogPost.findMany({
       where: { status: 'PUBLISHED' },

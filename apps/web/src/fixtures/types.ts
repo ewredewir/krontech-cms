@@ -14,7 +14,7 @@ export interface SliderSlide {
 }
 
 export interface ProductCard {
-  id: number;
+  id: string | number;
   name: LocaleMap;
   description: LocaleMap;
   bullets: LocaleMap[];
@@ -25,7 +25,7 @@ export interface ProductCard {
 }
 
 export interface BlogPost {
-  id: number;
+  id: string | number;
   slug: LocaleMap;
   title: LocaleMap;
   excerpt: LocaleMap;

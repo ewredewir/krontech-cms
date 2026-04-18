@@ -5,39 +5,63 @@ import Link from 'next/link';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { locales } from '@/lib/i18n';
 import type { Locale } from '@/lib/i18n';
-import { blogPosts } from '@/fixtures/blog';
+import { blogPosts as fixturePosts } from '@/fixtures/blog';
+import type { BlogPost } from '@/fixtures/types';
+import { apiFetch } from '@/lib/api';
 import { PageBanner } from '@/components/shared/PageBanner';
 import { Breadcrumb } from '@/components/shared/Breadcrumb';
 import { SeoHead } from '@/components/shared/SeoHead';
 import { BLUR_PLACEHOLDER } from '@/lib/media';
-import type { BlogPost } from '@/fixtures/types';
 
 export const revalidate = 60;
+
+interface ApiBlogPost {
+  id: string;
+  slug: { tr: string; en: string };
+  title: { tr: string; en: string };
+  excerpt: { tr: string; en: string };
+  body: { tr: string; en: string } | null;
+  publishedAt: string | null;
+  category: { slug: string } | null;
+  featuredImage: { publicUrl: string; altText: { tr: string; en: string } | null; blurDataUrl: string | null } | null;
+}
+
+function adaptPost(p: ApiBlogPost): BlogPost {
+  return {
+    id: p.id,
+    slug: p.slug,
+    title: p.title,
+    excerpt: p.excerpt,
+    category: p.category?.slug === 'haber' ? 'haber' : 'blog',
+    image: p.featuredImage?.publicUrl ?? BLUR_PLACEHOLDER,
+    publishedAt: p.publishedAt ?? new Date().toISOString(),
+  };
+}
 
 interface PageProps {
   params: { locale: string; slug: string };
 }
 
 export async function generateStaticParams() {
+  const apiSlugs = await apiFetch<Array<{ slug: { tr: string; en: string } }>>(
+    '/v1/public/blog/posts/all-slugs',
+  );
+  const slugMaps = apiSlugs ?? fixturePosts.map((p) => ({ slug: p.slug }));
   return locales.flatMap((locale) =>
-    blogPosts.map((post) => ({
-      locale,
-      slug: post.slug[locale],
-    }))
+    slugMaps
+      .map((item) => ({ locale, slug: item.slug[locale] }))
+      .filter((p) => Boolean(p.slug)),
   );
 }
 
 async function getPost(locale: Locale, slug: string): Promise<BlogPost | null> {
-  try {
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/v1/public/blog/posts/${locale}/${slug}`,
-      { next: { revalidate: 60 } }
-    );
-    if (!res.ok) throw new Error('not found');
-    return await res.json() as BlogPost;
-  } catch {
-    return blogPosts.find((p) => p.slug[locale] === slug) ?? null;
-  }
+  const data = await apiFetch<ApiBlogPost>(
+    `/v1/public/blog/posts/${locale}/${slug}`,
+    { next: { revalidate: 60 } },
+  );
+  if (data) return adaptPost(data);
+  const fixture = fixturePosts.find((p) => p.slug[locale] === slug);
+  return fixture ?? null;
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {

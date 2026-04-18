@@ -105,6 +105,7 @@ services:
       PORT:                "3000"
       HOSTNAME:            "0.0.0.0"
       INTERNAL_MEDIA_HOST: ${INTERNAL_MEDIA_HOST}
+      INTERNAL_API_URL:    ${INTERNAL_API_URL}
       REVALIDATE_SECRET:   ${REVALIDATE_SECRET}
       ROBOTS_DISALLOW_ALL: ${ROBOTS_DISALLOW_ALL}
     depends_on:

@@ -1,18 +1,50 @@
-'use client';
-
 import dynamic from 'next/dynamic';
-import { useTranslations } from 'next-intl';
-import { products } from '@/fixtures/products';
+import { getTranslations } from 'next-intl/server';
 import type { Locale } from '@/lib/i18n';
+import { products as fixtureProducts } from '@/fixtures/products';
+import type { ProductCard } from '@/fixtures/types';
+import { apiFetch } from '@/lib/api';
+import { BLUR_PLACEHOLDER } from '@/lib/media';
 
 const ProductSwiperInner = dynamic(() => import('./ProductSwiperInner'), { ssr: false });
+
+interface ApiProduct {
+  id: string;
+  slug: { tr: string; en: string };
+  name: { tr: string; en: string };
+  tagline: { tr: string; en: string } | null;
+  description: { tr: string; en: string } | null;
+  media: Array<{ order: number; media: { publicUrl: string } }>;
+}
+
+function adaptProduct(p: ApiProduct, locale: Locale): ProductCard {
+  return {
+    id: p.id,
+    slug: p.slug[locale],
+    name: p.name,
+    description: p.tagline ?? p.description ?? { tr: '', en: '' },
+    bullets: [],
+    image: p.media[0]?.media.publicUrl ?? BLUR_PLACEHOLDER,
+    href: '',
+    faqs: [],
+  };
+}
 
 interface ProductCatalogProps {
   locale: Locale;
 }
 
-export function ProductCatalog({ locale }: ProductCatalogProps) {
-  const t = useTranslations('products');
+export async function ProductCatalog({ locale }: ProductCatalogProps) {
+  const t = await getTranslations({ locale, namespace: 'products' });
+
+  const apiProducts = await apiFetch<ApiProduct[]>(
+    `/v1/public/products/${locale}`,
+    { next: { revalidate: 60 } },
+  );
+  const products: ProductCard[] =
+    Array.isArray(apiProducts) && apiProducts.length > 0
+      ? apiProducts.map((p) => adaptProduct(p, locale))
+      : fixtureProducts;
 
   return (
     <section
@@ -24,7 +56,7 @@ export function ProductCatalog({ locale }: ProductCatalogProps) {
           <h2 className="text-h2 text-heading font-medium">{t('sectionTitle')}</h2>
           <p className="text-secondary-text mt-2">{t('sectionSubtitle')}</p>
         </div>
-        <ProductSwiperInner locale={locale} />
+        <ProductSwiperInner products={products} locale={locale} />
       </div>
     </section>
   );

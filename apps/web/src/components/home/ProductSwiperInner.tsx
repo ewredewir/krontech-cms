@@ -7,16 +7,17 @@ import Link from 'next/link';
 import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
-import { products } from '@/fixtures/products';
+import type { ProductCard } from '@/fixtures/types';
 import type { Locale } from '@/lib/i18n';
 import { BLUR_PLACEHOLDER } from '@/lib/media';
 import { useTranslations } from 'next-intl';
 
 interface ProductSwiperInnerProps {
+  products: ProductCard[];
   locale: Locale;
 }
 
-export default function ProductSwiperInner({ locale }: ProductSwiperInnerProps) {
+export default function ProductSwiperInner({ products, locale }: ProductSwiperInnerProps) {
   const t = useTranslations('products');
 
   return (
@@ -48,13 +49,15 @@ export default function ProductSwiperInner({ locale }: ProductSwiperInnerProps) 
             </div>
             <h3 className="text-heading font-semibold text-lg mb-2">{product.name[locale]}</h3>
             <p className="text-secondary-text text-body flex-1 mb-4">{product.description[locale]}</p>
-            <ul className="check-list mb-6">
-              {product.bullets.slice(0, 3).map((bullet, i) => (
-                <li key={i} className="text-secondary-text text-body">
-                  {bullet[locale]}
-                </li>
-              ))}
-            </ul>
+            {product.bullets.length > 0 && (
+              <ul className="check-list mb-6">
+                {product.bullets.slice(0, 3).map((bullet, i) => (
+                  <li key={i} className="text-secondary-text text-body">
+                    {bullet[locale]}
+                  </li>
+                ))}
+              </ul>
+            )}
             <Link
               href={`/${locale}/products/${product.slug}`}
               className="text-primary text-nav-sm font-medium hover:text-primary-light transition-colors border-t border-gray-100 pt-4 mt-auto block"

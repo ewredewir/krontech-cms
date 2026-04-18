@@ -349,6 +349,44 @@ async function main() {
     },
   });
 
+  // Form definitions
+  await prisma.formDefinition.upsert({
+    where: { slug: 'contact' },
+    update: {},
+    create: {
+      name: 'Contact Form',
+      slug: 'contact',
+      fields: [
+        { name: 'firstName', type: 'text', label: { tr: 'İsim', en: 'First Name' }, required: true },
+        { name: 'lastName', type: 'text', label: { tr: 'Soyisim', en: 'Last Name' }, required: true },
+        { name: 'email', type: 'email', label: { tr: 'E-posta', en: 'Email' }, required: true },
+        { name: 'department', type: 'text', label: { tr: 'Departman', en: 'Department' }, required: true },
+        { name: 'company', type: 'text', label: { tr: 'Şirket', en: 'Company' }, required: true },
+        { name: 'phone', type: 'phone', label: { tr: 'Telefon', en: 'Phone' }, required: false },
+        { name: 'message', type: 'textarea', label: { tr: 'Mesaj', en: 'Message' }, required: false },
+      ],
+      isActive: true,
+    },
+  });
+
+  await prisma.formDefinition.upsert({
+    where: { slug: 'demo' },
+    update: {},
+    create: {
+      name: 'Demo Request',
+      slug: 'demo',
+      fields: [
+        { name: 'company', type: 'text', label: { tr: 'Şirket', en: 'Company' }, required: true },
+        { name: 'name', type: 'text', label: { tr: 'İsim', en: 'Name' }, required: true },
+        { name: 'email', type: 'email', label: { tr: 'E-posta', en: 'Email' }, required: true },
+        { name: 'phone', type: 'phone', label: { tr: 'Telefon', en: 'Phone' }, required: false },
+        { name: 'productInterest', type: 'text', label: { tr: 'Ürün İlgisi', en: 'Product Interest' }, required: true },
+        { name: 'message', type: 'textarea', label: { tr: 'Mesaj', en: 'Message' }, required: false },
+      ],
+      isActive: true,
+    },
+  });
+
   // Redirects
   await prisma.redirect.upsert({
     where: { source: '/eski-anasayfa' },

@@ -31,6 +31,7 @@ export function ContactForm({ locale, dark }: ContactFormProps) {
   const t = useTranslations('contact');
   const [success, setSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const {
     register,
@@ -38,11 +39,36 @@ export function ContactForm({ locale, dark }: ContactFormProps) {
     formState: { errors },
   } = useForm<FormValues>({ resolver: zodResolver(schema) });
 
-  async function onSubmit(_data: FormValues) {
+  async function onSubmit(data: FormValues) {
     setSubmitting(true);
-    await new Promise((r) => setTimeout(r, 500));
-    setSubmitting(false);
-    setSuccess(true);
+    setSubmitError(null);
+
+    const { kvkk1, ...fieldData } = data;
+
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/v1/public/forms/contact/submit`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            data: fieldData,
+            consentGiven: kvkk1 === true,
+            _honeypot: '',
+          }),
+        },
+      );
+
+      if (!res.ok) {
+        throw new Error(`Submission failed: ${res.status}`);
+      }
+
+      setSuccess(true);
+    } catch {
+      setSubmitError(locale === 'tr' ? 'Bir hata oluştu. Lütfen tekrar deneyin.' : 'An error occurred. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   const inputClass = dark
@@ -134,6 +160,9 @@ export function ContactForm({ locale, dark }: ContactFormProps) {
           </label>
         </div>
       </div>
+      {submitError && (
+        <p role="alert" className="text-error text-sm mt-4">{submitError}</p>
+      )}
       <button
         type="submit"
         disabled={submitting}

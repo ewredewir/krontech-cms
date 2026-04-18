@@ -6,14 +6,15 @@ import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
 import { BlogCard } from '@/components/shared/BlogCard';
-import { blogPosts } from '@/fixtures/blog';
+import type { BlogPost } from '@/fixtures/types';
 import type { Locale } from '@/lib/i18n';
 
 interface BlogSwiperInnerProps {
+  posts: BlogPost[];
   locale: Locale;
 }
 
-export default function BlogSwiperInner({ locale }: BlogSwiperInnerProps) {
+export default function BlogSwiperInner({ posts, locale }: BlogSwiperInnerProps) {
   return (
     <Swiper
       modules={[Navigation, Pagination]}
@@ -27,7 +28,7 @@ export default function BlogSwiperInner({ locale }: BlogSwiperInnerProps) {
       }}
       className="pb-12"
     >
-      {blogPosts.map((post) => (
+      {posts.map((post) => (
         <SwiperSlide key={post.id}>
           <BlogCard post={post} locale={locale} />
         </SwiperSlide>

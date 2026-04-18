@@ -196,6 +196,14 @@ export class ProductsController {
   }
 
   @SkipThrottle({ auth: true, form: true })
+  @Get('public/products/:locale')
+  @ApiOperation({ summary: 'Get all published products' })
+  findAllPublished(@Param('locale') locale: string) {
+    LocaleParamSchema.parse(locale);
+    return this.productsService.findAllPublished();
+  }
+
+  @SkipThrottle({ auth: true, form: true })
   @Get('public/products/:locale/:slug')
   @ApiOperation({ summary: 'Get a published product by locale and slug' })
   findPublished(

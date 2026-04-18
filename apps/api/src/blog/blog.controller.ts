@@ -174,6 +174,14 @@ export class BlogController {
   }
 
   @SkipThrottle({ auth: true, form: true })
+  @Get('public/blog/posts/:locale')
+  @ApiOperation({ summary: 'Get all published blog posts' })
+  findAllPublished(@Param('locale') locale: string) {
+    LocaleParamSchema.parse(locale);
+    return this.blogService.findAllPublished();
+  }
+
+  @SkipThrottle({ auth: true, form: true })
   @Get('public/blog/posts/:locale/:slug')
   @ApiOperation({ summary: 'Get a published blog post by locale and slug' })
   findPublished(
