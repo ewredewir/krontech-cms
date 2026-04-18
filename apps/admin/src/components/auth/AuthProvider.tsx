@@ -1,5 +1,15 @@
 'use client';
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { beginSilentRefresh, completeSilentRefresh } from '@/lib/api';
+
+function decodeToken(token: string): AuthUser | null {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1])) as { sub: string; email: string; role: 'ADMIN' | 'EDITOR' };
+    return { id: payload.sub, email: payload.email, role: payload.role };
+  } catch {
+    return null;
+  }
+}
 
 interface AuthUser {
   id: string;
@@ -26,6 +36,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // so we can silently recover the in-memory access token without a login screen
   useEffect(() => {
     const silentRefresh = async () => {
+      beginSilentRefresh();
       try {
         const res = await fetch('/api/v1/auth/refresh', {
           method: 'POST',
@@ -33,14 +44,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
         if (res.ok) {
           const { accessToken: token } = await res.json() as { accessToken: string };
+          completeSilentRefresh(token);
           setAccessToken(token);
-          const meRes = await fetch('/api/v1/auth/me', {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          if (meRes.ok) setUser(await meRes.json() as AuthUser);
+          setUser(decodeToken(token));
+        } else {
+          completeSilentRefresh(null);
         }
       } catch {
-        // Not logged in
+        completeSilentRefresh(null);
       } finally {
         setIsLoading(false);
       }
@@ -57,11 +68,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
     if (!res.ok) throw new Error('Invalid credentials');
     const { accessToken: token } = await res.json() as { accessToken: string };
+    completeSilentRefresh(token);
     setAccessToken(token);
-    const meRes = await fetch('/api/v1/auth/me', {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (meRes.ok) setUser(await meRes.json() as AuthUser);
+    setUser(decodeToken(token));
   }, []);
 
   const logout = useCallback(async () => {
@@ -69,6 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       method: 'POST',
       credentials: 'include',
     });
+    completeSilentRefresh(null);
     setAccessToken(null);
     setUser(null);
   }, []);

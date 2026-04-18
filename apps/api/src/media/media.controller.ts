@@ -14,6 +14,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { SkipThrottle } from '@nestjs/throttler';
 import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import multer from 'multer';
@@ -27,6 +28,7 @@ import { UpdateMediaSchema } from '@krontech/types';
 
 class UpdateMediaDto extends createZodDto(UpdateMediaSchema) {}
 
+@SkipThrottle({ auth: true, public: true, form: true })
 @ApiTags('media')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)

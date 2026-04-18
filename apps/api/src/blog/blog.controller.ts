@@ -14,6 +14,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { createZodDto } from 'nestjs-zod';
@@ -35,6 +36,7 @@ class ScheduleDto extends createZodDto(PublishPageSchema) {}
 
 const LocaleParamSchema = z.enum(['tr', 'en']);
 
+@SkipThrottle({ auth: true, public: true, form: true })
 @ApiTags('blog')
 @Controller()
 export class BlogController {
@@ -164,12 +166,14 @@ export class BlogController {
 
   // ─── Public endpoints ────────────────────────────────────────────────────────
 
+  @SkipThrottle({ auth: true, form: true })
   @Get('public/blog/posts/all-slugs')
   @ApiOperation({ summary: 'Get all published blog post slugs' })
   getAllSlugs() {
     return this.blogService.getAllSlugs();
   }
 
+  @SkipThrottle({ auth: true, form: true })
   @Get('public/blog/posts/:locale/:slug')
   @ApiOperation({ summary: 'Get a published blog post by locale and slug' })
   findPublished(

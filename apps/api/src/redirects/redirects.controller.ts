@@ -11,6 +11,7 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { createZodDto } from 'nestjs-zod';
 import { RedirectsService } from './redirects.service';
@@ -21,6 +22,7 @@ import { CreateRedirectSchema, UpdateRedirectSchema } from '@krontech/types';
 class CreateRedirectDto extends createZodDto(CreateRedirectSchema) {}
 class UpdateRedirectDto extends createZodDto(UpdateRedirectSchema) {}
 
+@SkipThrottle({ auth: true, public: true, form: true })
 @ApiTags('redirects')
 @Controller()
 export class RedirectsController {
@@ -74,6 +76,7 @@ export class RedirectsController {
 
   // ─── Public endpoint (Redis-cached, 60s TTL) ────────────────────────────────
 
+  @SkipThrottle({ auth: true, form: true })
   @Get('public/redirects')
   @ApiOperation({ summary: 'Get active redirect rules (Redis-cached, 60s TTL)' })
   getActiveRedirects() {

@@ -14,6 +14,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { createZodDto } from 'nestjs-zod';
@@ -37,6 +38,7 @@ class ReorderProductMediaDto extends createZodDto(ReorderProductMediaSchema) {}
 
 const LocaleParamSchema = z.enum(['tr', 'en']);
 
+@SkipThrottle({ auth: true, public: true, form: true })
 @ApiTags('products')
 @Controller()
 export class ProductsController {
@@ -186,12 +188,14 @@ export class ProductsController {
 
   // ─── Public endpoints ────────────────────────────────────────────────────────
 
+  @SkipThrottle({ auth: true, form: true })
   @Get('public/products/all-slugs')
   @ApiOperation({ summary: 'Get all published product slugs' })
   getAllSlugs() {
     return this.productsService.getAllSlugs();
   }
 
+  @SkipThrottle({ auth: true, form: true })
   @Get('public/products/:locale/:slug')
   @ApiOperation({ summary: 'Get a published product by locale and slug' })
   findPublished(

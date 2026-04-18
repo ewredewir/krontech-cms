@@ -25,5 +25,10 @@ ENV NEXT_PUBLIC_MEDIA_HOST=$NEXT_PUBLIC_MEDIA_HOST
 RUN corepack enable
 
 RUN pnpm turbo run build --filter=@krontech/web
+
+# Copy static assets into standalone output (standalone server does not serve these itself)
+RUN cp -r apps/web/.next/static apps/web/.next/standalone/apps/web/.next/static \
+ && if [ -d apps/web/public ]; then cp -r apps/web/public apps/web/.next/standalone/apps/web/public; fi
+
 EXPOSE 3000
 CMD ["node", "apps/web/.next/standalone/apps/web/server.js"]

@@ -14,6 +14,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { createZodDto } from 'nestjs-zod';
@@ -41,6 +42,7 @@ class ReorderComponentsDto extends createZodDto(ReorderComponentsSchema) {}
 
 const LocaleParamSchema = z.enum(['tr', 'en']);
 
+@SkipThrottle({ auth: true, public: true, form: true })
 @ApiTags('pages')
 @Controller()
 export class PagesController {
@@ -210,12 +212,14 @@ export class PagesController {
 
   // ─── Public endpoints ────────────────────────────────────────────────────────
 
+  @SkipThrottle({ auth: true, form: true })
   @Get('public/pages/all-slugs')
   @ApiOperation({ summary: 'Get all published page slugs (for Next.js generateStaticParams)' })
   getAllSlugs() {
     return this.pagesService.getAllSlugs();
   }
 
+  @SkipThrottle({ auth: true, form: true })
   @Get('public/pages/:locale/:slug')
   @ApiOperation({ summary: 'Get a published page by locale and slug' })
   findPublished(

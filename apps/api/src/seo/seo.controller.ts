@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Param, ParseUUIDPipe, Put, Res, UseGuards } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
 import { createZodDto } from 'nestjs-zod';
@@ -10,6 +11,7 @@ import { UpdateSeoMetaSchema } from '@krontech/types';
 
 class UpdateSeoMetaDto extends createZodDto(UpdateSeoMetaSchema) {}
 
+@SkipThrottle({ auth: true, public: true, form: true })
 @ApiTags('seo')
 @Controller()
 export class SeoController {
@@ -18,6 +20,7 @@ export class SeoController {
     private readonly cacheService: CacheService,
   ) {}
 
+  @SkipThrottle({ auth: true, form: true })
   @Get('public/sitemap.xml')
   @ApiOperation({ summary: 'Get XML sitemap (cached 1hr)' })
   async getSitemap(@Res() res: Response) {

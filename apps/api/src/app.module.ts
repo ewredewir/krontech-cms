@@ -1,6 +1,7 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
-import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { AdminThrottlerGuard } from './common/guards/admin-throttler.guard';
 import { LoggerModule } from 'nestjs-pino';
 import * as crypto from 'crypto';
 
@@ -63,7 +64,7 @@ import { RedirectsModule } from './redirects/redirects.module';
   providers: [
     {
       provide: APP_GUARD,
-      useClass: ThrottlerGuard,
+      useClass: AdminThrottlerGuard,
     },
   ],
 })

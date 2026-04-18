@@ -13,6 +13,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import { SkipThrottle, Throttle } from '@nestjs/throttler';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { createZodDto } from 'nestjs-zod';
@@ -26,6 +27,7 @@ class CreateFormDto extends createZodDto(CreateFormSchema) {}
 class UpdateFormDto extends createZodDto(UpdateFormSchema) {}
 class SubmitFormDto extends createZodDto(SubmitFormSchema) {}
 
+@SkipThrottle({ auth: true, public: true, form: true })
 @ApiTags('forms')
 @Controller()
 export class FormsController {
@@ -90,12 +92,15 @@ export class FormsController {
 
   // ─── Public endpoints ────────────────────────────────────────────────────────
 
+  @SkipThrottle({ auth: true, form: true })
   @Get('public/forms/:slug')
   @ApiOperation({ summary: 'Get a form definition by slug (for rendering)' })
   getFormBySlug(@Param('slug') slug: string) {
     return this.formsService.findFormBySlug(slug);
   }
 
+  @SkipThrottle({ auth: true, public: true, default: true })
+  @Throttle({ form: { limit: 5, ttl: 600000 } })
   @Post('public/forms/:slug/submit')
   @ApiOperation({ summary: 'Submit a form' })
   async submit(

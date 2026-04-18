@@ -11,8 +11,26 @@ api.interceptors.request.use(config => {
   return config;
 });
 
+type QueueItem = { resolve: (token: string) => void; reject: (err: unknown) => void };
 let isRefreshing = false;
-let refreshQueue: Array<(token: string) => void> = [];
+let refreshQueue: QueueItem[] = [];
+
+// Called by AuthProvider at the start of silentRefresh so the 401 interceptor
+// queues retries instead of racing with a second /auth/refresh call.
+export function beginSilentRefresh() {
+  isRefreshing = true;
+}
+
+export function completeSilentRefresh(token: string | null) {
+  isRefreshing = false;
+  if (token) {
+    setAccessToken(token);
+    refreshQueue.forEach(({ resolve }) => resolve(token));
+  } else {
+    refreshQueue.forEach(({ reject }) => reject(new Error('Not authenticated')));
+  }
+  refreshQueue = [];
+}
 
 api.interceptors.response.use(
   res => res,
@@ -22,8 +40,8 @@ api.interceptors.response.use(
     if (error.config?.url?.includes('/auth/refresh')) throw error;
 
     if (isRefreshing) {
-      return new Promise<string>(resolve => {
-        refreshQueue.push(resolve);
+      return new Promise<string>((resolve, reject) => {
+        refreshQueue.push({ resolve, reject });
       }).then(token => {
         if (error.config) {
           error.config.headers.Authorization = `Bearer ${token}`;
@@ -42,7 +60,7 @@ api.interceptors.response.use(
       );
       const newToken = refreshRes.data.accessToken;
       setAccessToken(newToken);
-      refreshQueue.forEach(cb => cb(newToken));
+      refreshQueue.forEach(({ resolve }) => resolve(newToken));
       refreshQueue = [];
       if (error.config) {
         error.config.headers.Authorization = `Bearer ${newToken}`;

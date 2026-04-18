@@ -23,5 +23,10 @@ ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 RUN corepack enable
 
 RUN pnpm turbo run build --filter=@krontech/admin
+
+# Copy static assets into standalone output (standalone server does not serve these itself)
+RUN cp -r apps/admin/.next/static apps/admin/.next/standalone/apps/admin/.next/static \
+ && if [ -d apps/admin/public ]; then cp -r apps/admin/public apps/admin/.next/standalone/apps/admin/public; fi
+
 EXPOSE 3002
 CMD ["node", "apps/admin/.next/standalone/apps/admin/server.js"]
