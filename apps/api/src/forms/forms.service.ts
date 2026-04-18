@@ -78,6 +78,14 @@ export class FormsService {
     ip: string,
     userAgent: string,
   ): Promise<FormSubmission> {
+    if (dto._honeypot) {
+      return { id: 'bot-suppressed' } as FormSubmission;
+    }
+
+    if (!(dto.consentGiven as boolean)) {
+      throw new BadRequestException('Consent is required');
+    }
+
     const form = await this.findFormBySlug(slug);
 
     if (!form.isActive) {
