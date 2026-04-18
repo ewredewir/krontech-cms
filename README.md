@@ -238,10 +238,10 @@ Copy `.env.example` to `.env` and fill in secrets before running Docker.
 | `POSTGRES_USER` | runtime | PostgreSQL username |
 | `POSTGRES_PASSWORD` | runtime | PostgreSQL password |
 | `POSTGRES_DB` | runtime | PostgreSQL database name |
-| `DATABASE_URL` | runtime | Prisma connection string (host machine / CI) |
-| `DOCKER_DATABASE_URL` | runtime | Prisma connection string (inside Docker) |
-| `REDIS_URL` | runtime | Redis connection string (host machine / CI) |
-| `DOCKER_REDIS_URL` | runtime | Redis connection string (inside Docker) |
+| `DATABASE_URL` | runtime | Prisma connection string — host machine (`localhost:5433`), used by `prisma migrate dev` and local test runners |
+| `DOCKER_DATABASE_URL` | runtime | Prisma connection string — Docker-internal (`postgres:5432`), used by `api` and `migrator` containers |
+| `REDIS_URL` | runtime | Redis connection string — host machine (`localhost:6379`), used by local test runners |
+| `DOCKER_REDIS_URL` | runtime | Redis connection string — Docker-internal (`redis:6379`), used by the `api` container |
 | `MINIO_ROOT_USER` | runtime | MinIO admin username |
 | `MINIO_ROOT_PASSWORD` | runtime | MinIO admin password |
 | `S3_ENDPOINT` | runtime | S3/MinIO endpoint URL (Docker-internal) |
@@ -255,5 +255,6 @@ Copy `.env.example` to `.env` and fill in secrets before running Docker.
 | `NEXT_PUBLIC_API_URL` | **build-time** | Public API base URL baked into the JS bundle — rebuild required on change |
 | `NEXT_PUBLIC_MEDIA_HOST` | **build-time** | Public media CDN/MinIO URL baked into the JS bundle |
 | `INTERNAL_MEDIA_HOST` | runtime | Docker-internal MinIO URL for server-side image fetching |
+| `INTERNAL_API_URL` | runtime | Docker-internal NestJS URL for Next.js server-side fetches (SSR/ISR) — `http://nginx/api` inside Docker |
 | `NODE_ENV` | runtime | `development` or `production` |
 | `ROBOTS_DISALLOW_ALL` | runtime | `true` in all non-production environments — outputs `Disallow: /` |

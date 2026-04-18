@@ -41,12 +41,21 @@ export default function HeroSwiperInner({ locale }: HeroSwiperInnerProps) {
           <div className="relative z-10 h-full flex items-center">
             <div className="max-w-[1400px] mx-auto w-full px-6 nav:px-10">
               <div className="max-w-xl">
+                {slide.id === 1 ? (
+                  <h1
+                    className="text-white text-3xl nav:text-[42px] font-semibold leading-tight mb-4"
+                    dangerouslySetInnerHTML={{
+                      __html: slide.titleHighlighted[locale],
+                    }}
+                  />
+                ) : (
                 <h2
                   className="text-white text-3xl nav:text-[42px] font-semibold leading-tight mb-4"
                   dangerouslySetInnerHTML={{
                     __html: slide.titleHighlighted[locale],
                   }}
                 />
+                )}
                 <p className="text-white/80 text-lead mb-8">{slide.body[locale]}</p>
                 <Link
                   href={slide.ctaUrl}
