@@ -1,36 +1,28 @@
 import Image from 'next/image';
 import { getTranslations } from 'next-intl/server';
 import { BLUR_PLACEHOLDER } from '@/lib/media';
+import type { Locale } from '@/lib/i18n';
 
-interface StatsBannerProps {
-  locale: string;
+interface CmsStat {
+  label: { tr: string; en: string };
+  value: string;
 }
 
-export async function StatsBanner({ locale }: StatsBannerProps) {
-  const t = await getTranslations({ locale, namespace: 'stats' });
+// Hardcoded icons paired by position — kept as UI decoration
+const STAT_ICONS = [
+  '/assets/uploads/icons/globe.png',
+  '/assets/uploads/icons/country.jpg',
+  '/assets/uploads/icons/partners.png',
+  '/assets/uploads/icons/projects.png',
+];
 
-  const stats = [
-    {
-      icon: '/assets/uploads/icons/globe.png',
-      value: t('continentsValue'),
-      label: t('continents'),
-    },
-    {
-      icon: '/assets/uploads/icons/country.jpg',
-      value: t('countriesValue'),
-      label: t('countries'),
-    },
-    {
-      icon: '/assets/uploads/icons/partners.png',
-      value: t('partnersValue'),
-      label: t('partners'),
-    },
-    {
-      icon: '/assets/uploads/icons/projects.png',
-      value: t('projectsValue'),
-      label: t('projects'),
-    },
-  ];
+interface StatsBannerProps {
+  locale: Locale;
+  stats: CmsStat[];
+}
+
+export async function StatsBanner({ locale, stats }: StatsBannerProps) {
+  const t = await getTranslations({ locale, namespace: 'stats' });
 
   return (
     <section
@@ -42,21 +34,23 @@ export async function StatsBanner({ locale }: StatsBannerProps) {
           {t('sectionTitle')}
         </h2>
         <ul className="grid grid-cols-2 nav:grid-cols-4 gap-8">
-          {stats.map((stat) => (
-            <li key={stat.label} className="flex flex-col items-center text-center">
-              <div className="relative w-16 h-16 mb-3">
-                <Image
-                  src={stat.icon}
-                  alt=""
-                  fill
-                  className="object-contain"
-                  placeholder="blur"
-                  blurDataURL={BLUR_PLACEHOLDER}
-                  sizes="64px"
-                />
-              </div>
+          {stats.map((stat, i) => (
+            <li key={i} className="flex flex-col items-center text-center">
+              {STAT_ICONS[i] && (
+                <div className="relative w-16 h-16 mb-3">
+                  <Image
+                    src={STAT_ICONS[i]!}
+                    alt=""
+                    fill
+                    className="object-contain"
+                    placeholder="blur"
+                    blurDataURL={BLUR_PLACEHOLDER}
+                    sizes="64px"
+                  />
+                </div>
+              )}
               <span className="text-white text-3xl font-bold">{stat.value}</span>
-              <span className="text-white/80 text-sm mt-1">{stat.label}</span>
+              <span className="text-white/80 text-sm mt-1">{stat.label[locale]}</span>
             </li>
           ))}
         </ul>

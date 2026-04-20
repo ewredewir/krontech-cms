@@ -93,6 +93,14 @@ enum ComponentType {
   faq
   media_block
   form_embed
+  hero_slider
+  video
+  stats_banner
+  why_kron
+  contact_section
+  kuppinger_cole
+  product_catalog
+  blog_carousel
 }
 
 model Page {
@@ -257,4 +265,20 @@ model AuditLog {
 
   userId String
   user   User   @relation(fields: [userId], references: [id])
+}
+
+model NavigationItem {
+  id       String  @id @default(uuid())
+  locale   String  // 'tr' | 'en'
+  label    String
+  href     String?
+  order    Int     @default(0)
+  isActive Boolean @default(true)
+
+  parentId String?
+  parent   NavigationItem?  @relation("NavChildren", fields: [parentId], references: [id])
+  children NavigationItem[] @relation("NavChildren")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

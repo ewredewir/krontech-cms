@@ -1,3 +1,16 @@
+export async function fetchWithFallback<T>(
+  url: string,
+  fixture: T,
+  options?: RequestInit & { next?: { revalidate?: number | false; tags?: string[] } },
+): Promise<T> {
+  if (process.env.NEXT_PUBLIC_USE_FIXTURES === 'true') {
+    return fixture;
+  }
+  const res = await fetch(url, options);
+  if (!res.ok) throw new Error(`API error: ${res.status} ${url}`);
+  return res.json() as Promise<T>;
+}
+
 function getApiBase(): string {
   if (typeof window === 'undefined') {
     const internal = process.env.INTERNAL_API_URL;

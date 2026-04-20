@@ -9,7 +9,7 @@ import api from '@/lib/api';
 interface Page {
   id: string;
   slug: { tr: string; en: string };
-  title: { tr: string; en: string };
+  seo: { metaTitle: { tr: string; en: string } | null } | null;
   status: string;
   updatedAt: string;
 }
@@ -48,7 +48,7 @@ export default function PagesListPage() {
   useEffect(() => { void load(currentPage); }, [currentPage]);
 
   const handleDelete = async (id: string, title: string) => {
-    if (!confirm(`Delete page "${title}"?`)) return;
+    if (!confirm(`Delete page "${title || id}"?`)) return;
     try {
       await api.delete(`/pages/${id}`);
       void load(currentPage);
@@ -79,7 +79,7 @@ export default function PagesListPage() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th className="text-left px-4 py-3 font-medium text-gray-600">Title (TR)</th>
+                <th className="text-left px-4 py-3 font-medium text-gray-600">Title / Slug (TR)</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Slug</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Status</th>
                 <th className="text-left px-4 py-3 font-medium text-gray-600">Updated</th>
@@ -93,7 +93,7 @@ export default function PagesListPage() {
                 <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400">No pages found</td></tr>
               ) : pages.map(page => (
                 <tr key={page.id} className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="px-4 py-3">{page.title?.tr ?? '—'}</td>
+                  <td className="px-4 py-3">{page.seo?.metaTitle?.tr ?? page.slug?.tr ?? '—'}</td>
                   <td className="px-4 py-3 font-mono text-xs text-gray-500">{page.slug?.tr ?? '—'}</td>
                   <td className="px-4 py-3">
                     <span className={`text-xs font-medium ${STATUS_COLOR[page.status] ?? 'text-gray-500'}`}>
@@ -105,7 +105,7 @@ export default function PagesListPage() {
                     <Link href={`/pages/${page.id}/edit`} className="text-primary hover:underline text-xs mr-3">Edit</Link>
                     <button
                       type="button"
-                      onClick={() => { void handleDelete(page.id, page.title?.tr ?? page.id); }}
+                      onClick={() => { void handleDelete(page.id, page.seo?.metaTitle?.tr ?? page.slug?.tr ?? page.id); }}
                       className="text-red-500 hover:underline text-xs"
                     >
                       Delete

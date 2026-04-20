@@ -1,3 +1,4 @@
+import { createHmac } from 'crypto';
 import {
   BadRequestException,
   Injectable,
@@ -83,7 +84,7 @@ export class PagesService {
     userId: string,
     ipAddress: string,
   ): Promise<Page> {
-    await this.findOne(id);
+    const existing = await this.findOne(id);
     const updated = await this.prisma.page.update({
       where: { id },
       data: {
@@ -103,6 +104,16 @@ export class PagesService {
       diff: dto,
       ipAddress,
     });
+    if (dto.slug) {
+      const oldSlug = existing.slug as LocaleMap;
+      const newSlug = updated.slug as LocaleMap;
+      void this.cacheService.invalidateContent([
+        `/tr/${oldSlug.tr}`,
+        `/en/${oldSlug.en}`,
+        `/tr/${newSlug.tr}`,
+        `/en/${newSlug.en}`,
+      ]);
+    }
     return updated;
   }
 
@@ -230,13 +241,17 @@ export class PagesService {
     return updated;
   }
 
-  async generatePreviewLink(pageId: string): Promise<string> {
-    const token = this.jwtService.sign(
-      { pageId, purpose: 'preview' },
-      { expiresIn: '1h', secret: process.env.JWT_ACCESS_SECRET },
-    );
-    const base = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') ?? '';
-    return `${base}/api/preview?token=${token}`;
+  async generatePreviewLink(pageId: string): Promise<{ url: string }> {
+    const page = await this.findOne(pageId);
+    const slug = page.slug as LocaleMap;
+    const expiry = Date.now() + 3_600_000; // 1 hour
+    const payload = `${pageId}:${slug.tr}:${slug.en}:${expiry}`;
+    const sig = createHmac('sha256', process.env.REVALIDATE_SECRET ?? '')
+      .update(payload)
+      .digest('hex');
+    const token = Buffer.from(`${payload}:${sig}`).toString('base64url');
+    const base = process.env.WEB_PUBLIC_URL ?? '';
+    return { url: `${base}/api/preview?token=${token}` };
   }
 
   async getVersions(pageId: string) {
@@ -264,7 +279,7 @@ export class PagesService {
     id: string,
     dto: UpdatePageComponentDto,
   ): Promise<PageComponent> {
-    return this.prisma.pageComponent.update({
+    const updated = await this.prisma.pageComponent.update({
       where: { id },
       data: {
         ...(dto.order !== undefined && { order: dto.order }),
@@ -272,13 +287,18 @@ export class PagesService {
         ...(dto.isVisible !== undefined && { isVisible: dto.isVisible }),
       },
     });
+    void this.invalidateComponentPage(updated.pageId);
+    return updated;
   }
 
   async removeComponent(id: string): Promise<void> {
+    const comp = await this.prisma.pageComponent.findUnique({ where: { id }, select: { pageId: true } });
     await this.prisma.pageComponent.delete({ where: { id } });
+    if (comp) void this.invalidateComponentPage(comp.pageId);
   }
 
   async reorderComponents(dto: ReorderComponentsDto): Promise<void> {
+    if (dto.components.length === 0) return;
     await this.prisma.$transaction(
       dto.components.map((c) =>
         this.prisma.pageComponent.update({
@@ -287,6 +307,24 @@ export class PagesService {
         }),
       ),
     );
+    // Derive pageId from first component and invalidate
+    const first = await this.prisma.pageComponent.findUnique({
+      where: { id: dto.components[0]!.id },
+      select: { pageId: true },
+    });
+    if (first) void this.invalidateComponentPage(first.pageId);
+  }
+
+  private async invalidateComponentPage(pageId: string): Promise<void> {
+    const page = await this.prisma.page.findUnique({ where: { id: pageId }, select: { slug: true } });
+    if (!page) return;
+    const slug = page.slug as LocaleMap;
+    const paths = [`/tr/${slug.tr}`, `/en/${slug.en}`];
+    // The homepage slugs resolve to /tr and /en, not /tr/anasayfa.
+    if (slug.tr === 'anasayfa' || slug.en === 'home') {
+      paths.push('/tr', '/en');
+    }
+    void this.cacheService.invalidateContent(paths);
   }
 
   // Public endpoints
@@ -302,7 +340,63 @@ export class PagesService {
     });
 
     if (!page) throw new NotFoundException('Page not found');
-    return page;
+
+    // Resolve *MediaId UUIDs → { publicUrl, blurDataUrl } inline in component data.
+    const mediaIdFields = ['backgroundMediaId', 'badgeMediaId', 'thumbnailMediaId'] as const;
+    const mediaIds = new Set<string>();
+    for (const comp of page.components) {
+      const d = comp.data as Record<string, unknown>;
+      for (const field of mediaIdFields) {
+        if (typeof d[field] === 'string') mediaIds.add(d[field] as string);
+      }
+      // hero_slider: each slide may carry backgroundMediaId
+      if (Array.isArray(d['slides'])) {
+        for (const slide of d['slides'] as Array<Record<string, unknown>>) {
+          if (typeof slide['backgroundMediaId'] === 'string') mediaIds.add(slide['backgroundMediaId'] as string);
+        }
+      }
+    }
+
+    const mediaMap = new Map<string, { publicUrl: string; blurDataUrl: string | null }>();
+    if (mediaIds.size > 0) {
+      const records = await this.prisma.media.findMany({
+        where: { id: { in: [...mediaIds] } },
+        select: { id: true, publicUrl: true, blurDataUrl: true },
+      });
+      for (const r of records) mediaMap.set(r.id, { publicUrl: r.publicUrl, blurDataUrl: r.blurDataUrl });
+    }
+
+    const resolvedComponents = page.components.map((comp) => {
+      if (mediaMap.size === 0) return comp;
+      const d = { ...(comp.data as Record<string, unknown>) };
+      for (const field of mediaIdFields) {
+        if (typeof d[field] === 'string') {
+          const m = mediaMap.get(d[field] as string);
+          if (m) {
+            const urlKey = field.replace('MediaId', 'ImageUrl') as string;
+            const blurKey = field.replace('MediaId', 'BlurDataUrl') as string;
+            d[urlKey] = m.publicUrl;
+            d[blurKey] = m.blurDataUrl;
+          }
+        }
+      }
+      if (Array.isArray(d['slides'])) {
+        d['slides'] = (d['slides'] as Array<Record<string, unknown>>).map((slide) => {
+          const s = { ...slide };
+          if (typeof s['backgroundMediaId'] === 'string') {
+            const m = mediaMap.get(s['backgroundMediaId'] as string);
+            if (m) {
+              s['backgroundImageUrl'] = m.publicUrl;
+              s['backgroundBlurDataUrl'] = m.blurDataUrl;
+            }
+          }
+          return s;
+        });
+      }
+      return { ...comp, data: d };
+    });
+
+    return { ...page, components: resolvedComponents };
   }
 
   async getAllSlugs(): Promise<Array<{ slug: LocaleMap }>> {

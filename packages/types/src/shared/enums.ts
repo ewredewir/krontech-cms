@@ -19,5 +19,13 @@ export const PageComponentType = {
   faq: 'faq',
   media_block: 'media_block',
   form_embed: 'form_embed',
+  hero_slider: 'hero_slider',
+  video: 'video',
+  stats_banner: 'stats_banner',
+  why_kron: 'why_kron',
+  contact_section: 'contact_section',
+  kuppinger_cole: 'kuppinger_cole',
+  product_catalog: 'product_catalog',
+  blog_carousel: 'blog_carousel',
 } as const;
 export type PageComponentType = typeof PageComponentType[keyof typeof PageComponentType];

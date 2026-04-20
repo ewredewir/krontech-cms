@@ -1,19 +1,25 @@
 import { getTranslations } from 'next-intl/server';
 import type { Locale } from '@/lib/i18n';
 
-interface WhyKronProps {
-  locale: Locale;
+interface CmsWhyKronItem {
+  icon?: string;
+  title: { tr: string; en: string };
+  body: { tr: string; en: string };
 }
 
-export async function WhyKron({ locale }: WhyKronProps) {
+interface WhyKronProps {
+  locale: Locale;
+  heading?: { tr: string; en: string };
+  items: CmsWhyKronItem[];
+}
+
+export async function WhyKron({ locale, heading, items }: WhyKronProps) {
   const t = await getTranslations({ locale, namespace: 'whyKron' });
 
-  const reasons = [
-    { title: t('reason1Title'), body: t('reason1Body') },
-    { title: t('reason2Title'), body: t('reason2Body') },
-    { title: t('reason3Title'), body: t('reason3Body') },
-    { title: t('reason4Title'), body: t('reason4Body') },
-  ];
+  const reasons = items.map((item) => ({
+    title: item.title[locale],
+    body: item.body[locale],
+  }));
 
   return (
     <section
@@ -24,7 +30,7 @@ export async function WhyKron({ locale }: WhyKronProps) {
       <div className="max-w-[1400px] mx-auto px-6 nav:px-10">
         <div className="grid grid-cols-1 nav:grid-cols-2 gap-12 items-start">
           <div className="bg-white p-10 shadow-card">
-            <h2 className="text-h3 text-heading mb-2">{t('title')}</h2>
+            <h2 className="text-h3 text-heading mb-2">{heading?.[locale] ?? t('title')}</h2>
             <p className="text-secondary-text mb-8">{t('subtitle')}</p>
             <dl className="space-y-6">
               {reasons.map((reason, i) => (

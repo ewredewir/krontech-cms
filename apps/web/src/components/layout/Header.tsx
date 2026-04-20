@@ -9,26 +9,47 @@ import { NavDropdown } from '@/components/nav/NavDropdown';
 import { LanguageSwitcher } from '@/components/nav/LanguageSwitcher';
 import { MobileNav } from '@/components/layout/MobileNav';
 import { navItemsTr, navItemsEn } from '@/fixtures/navigation';
+import type { NavItem } from '@/fixtures/types';
 import type { Locale } from '@/lib/i18n';
 
 interface HeaderProps {
   locale: Locale;
+  navItems?: NavItem[];
+  slugMap?: { tr: Record<string, string>; en: Record<string, string> };
 }
 
-export function Header({ locale }: HeaderProps) {
+function translatePath(
+  pathname: string,
+  fromLocale: string,
+  toLocale: string,
+  map: Record<string, string>,
+): string {
+  const prefix = `/${fromLocale}/`;
+  if (!pathname.startsWith(prefix)) {
+    return pathname.replace(`/${fromLocale}`, `/${toLocale}`);
+  }
+  const rest = pathname.slice(prefix.length);
+  const firstSegment = rest.split('/')[0];
+  if (firstSegment && map[firstSegment]) {
+    return `/${toLocale}/${rest.replace(firstSegment, map[firstSegment])}`;
+  }
+  return `/${toLocale}/${rest}`;
+}
+
+export function Header({ locale, navItems: navItemsProp, slugMap }: HeaderProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const pathname = usePathname();
   const t = useTranslations('nav');
 
-  const navItems = locale === 'en' ? navItemsEn : navItemsTr;
+  const navItems = navItemsProp ?? (locale === 'en' ? navItemsEn : navItemsTr);
 
   const logoSrc =
     locale === 'en'
       ? '/assets/images/kt-dark-logo-en.png'
       : '/assets/images/kt-dark-logo-tr.png';
 
-  const trPath = pathname.replace(`/${locale}`, '/tr');
-  const enPath = pathname.replace(`/${locale}`, '/en');
+  const trPath = translatePath(pathname, locale, 'tr', slugMap?.en ?? {});
+  const enPath = translatePath(pathname, locale, 'en', slugMap?.tr ?? {});
 
   const handleClose = useCallback(() => setMobileOpen(false), []);
 

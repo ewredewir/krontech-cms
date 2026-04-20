@@ -21,6 +21,24 @@ import { ComponentBlockForm } from './ComponentBlockForm';
 import api from '@/lib/api';
 import { PageComponentType } from '@krontech/types';
 
+const COMPONENT_LABELS: Record<string, string> = {
+  hero: 'Hero',
+  text_block: 'Text Block',
+  cta: 'CTA Banner',
+  features_grid: 'Features Grid',
+  faq: 'FAQ',
+  media_block: 'Media Block',
+  form_embed: 'Form Embed',
+  hero_slider: 'Hero Slider',
+  video: 'Video Section',
+  stats_banner: 'Stats Banner',
+  why_kron: 'Why Kron',
+  contact_section: 'Contact Section',
+  kuppinger_cole: 'KuppingerCole Badge',
+  product_catalog: 'Product Catalog',
+  blog_carousel: 'Blog Carousel',
+};
+
 interface PageComponent {
   id: string;
   type: string;
@@ -164,7 +182,7 @@ export function PageComponentEditor({ pageId, initialComponents }: PageComponent
           >
             <option value="">+ Add component…</option>
             {Object.values(PageComponentType).map(t => (
-              <option key={t} value={t}>{t}</option>
+              <option key={t} value={t}>{COMPONENT_LABELS[t] ?? t}</option>
             ))}
           </select>
         </div>

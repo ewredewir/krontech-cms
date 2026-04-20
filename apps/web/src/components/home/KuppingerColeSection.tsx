@@ -6,9 +6,12 @@ import { BLUR_PLACEHOLDER } from '@/lib/media';
 
 interface KuppingerColeSectionProps {
   locale: Locale;
+  heading?: { tr: string; en: string };
+  linkHref?: string;
+  badgeImageUrl?: string;
 }
 
-export async function KuppingerColeSection({ locale }: KuppingerColeSectionProps) {
+export async function KuppingerColeSection({ locale, heading, linkHref, badgeImageUrl }: KuppingerColeSectionProps) {
   const t = await getTranslations({ locale, namespace: 'kuppingercole' });
 
   return (
@@ -19,10 +22,10 @@ export async function KuppingerColeSection({ locale }: KuppingerColeSectionProps
             <span className="inline-block bg-primary text-white text-xs font-semibold px-3 py-1 mb-4">
               {t('badge')}
             </span>
-            <h2 className="text-h3 text-heading mb-4">{t('title')}</h2>
+            <h2 className="text-h3 text-heading mb-4">{heading?.[locale] ?? t('title')}</h2>
             <p className="text-secondary-text text-lead leading-7 mb-6">{t('body')}</p>
             <Link
-              href={`/${locale}/resources`}
+              href={linkHref ?? `/${locale}/resources`}
               className="inline-block bg-primary hover:bg-primary-light text-white font-medium px-8 py-3 text-sm transition-colors"
             >
               {t('cta')}
@@ -30,7 +33,7 @@ export async function KuppingerColeSection({ locale }: KuppingerColeSectionProps
           </div>
           <div className="flex justify-center">
             <Image
-              src="/assets/uploads/content/homepage_kuppingercole.png"
+              src={badgeImageUrl ?? '/assets/uploads/content/homepage_kuppingercole.png'}
               alt="KuppingerCole Leadership Compass PAM Overall Leader"
               width={500}
               height={400}

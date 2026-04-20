@@ -23,6 +23,7 @@ import { CmsSchedulerModule } from './scheduler/scheduler.module';
 import { AuditModule } from './audit/audit.module';
 import { QueueModule } from './queue/queue.module';
 import { RedirectsModule } from './redirects/redirects.module';
+import { NavigationModule } from './navigation/navigation.module';
 
 @Module({
   imports: [
@@ -60,6 +61,7 @@ import { RedirectsModule } from './redirects/redirects.module';
     AuditModule,
     QueueModule,
     RedirectsModule,
+    NavigationModule,
   ],
   providers: [
     {

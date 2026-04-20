@@ -1,7 +1,7 @@
 import dynamic from 'next/dynamic';
+import { unstable_noStore as noStore } from 'next/cache';
 import { getTranslations } from 'next-intl/server';
 import type { Locale } from '@/lib/i18n';
-import { blogPosts as fixturePosts } from '@/fixtures/blog';
 import type { BlogPost } from '@/fixtures/types';
 import { apiFetch } from '@/lib/api';
 import { BLUR_PLACEHOLDER } from '@/lib/media';
@@ -41,10 +41,9 @@ export async function BlogCarousel({ locale }: BlogCarouselProps) {
     `/v1/public/blog/posts/${locale}`,
     { next: { revalidate: 60 } },
   );
-  const posts: BlogPost[] =
-    Array.isArray(apiPosts) && apiPosts.length > 0
-      ? apiPosts.map(adaptPost)
-      : fixturePosts;
+  if (apiPosts === null) noStore();
+  if (!apiPosts || apiPosts.length === 0) return null;
+  const posts: BlogPost[] = apiPosts.map(adaptPost);
 
   return (
     <section aria-label={t('sectionLabel')} className="py-20 bg-body mb-24">

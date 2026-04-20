@@ -8,12 +8,12 @@
 ┌─────────────────────────────────────────────────────────────────────┐
 │                          Browser / Client                           │
 └──────────────────────────────┬──────────────────────────────────────┘
-                               │ :80
+                          │ :80 / :3002
                     ┌──────────▼──────────┐
                     │       nginx         │  Reverse proxy
-                    │  /api → api:3001    │  Rate limiting (upstream)
-                    │  /     → web:3000   │
-                    │  /admin → admin:3002│
+                    │  :80/api → api:3001 │  Rate limiting (upstream)
+                    │  :80/    → web:3000 │
+                    │  :3002   → admin:3002│
                     └──┬───────────┬──────┘
                        │           │
           ┌────────────▼──┐   ┌────▼──────────────┐
@@ -45,17 +45,17 @@
 
 **Services:**
 
-| Service    | Port  | Description |
-|------------|-------|-------------|
-| `postgres` | 5432  | PostgreSQL 15 database |
-| `redis`    | 6379  | Rate limiting, refresh tokens, BullMQ queues, redirect cache |
-| `minio`    | 9000/9001 | S3-compatible object storage (dev); UI at 9001 |
-| `migrator` | —     | One-shot migration + conditional seed (exits after completion) |
-| `api`      | 3001  | NestJS REST API |
-| `web`      | 3000  | Next.js 14 public site |
-| `admin`    | 3002  | Next.js 14 admin panel |
-| `nginx`    | 80    | Reverse proxy — routes `/api`, `/`, `/admin` |
-| `mailhog`  | 8025  | Mock SMTP UI (email transport is a stub — inbox will be empty) |
+| Service    | Host port(s) | Description |
+|------------|--------------|-------------|
+| `postgres` | 5433 → 5432  | PostgreSQL 15 database (host-exposed for dev tools; Docker-internal at `postgres:5432`) |
+| `redis`    | 6379         | Rate limiting, refresh tokens, BullMQ queues, redirect cache |
+| `minio`    | 9000, 9001   | S3-compatible object storage; S3 API at 9000, console UI at 9001 |
+| `migrator` | —            | One-shot migration + conditional seed (exits after completion) |
+| `api`      | internal :3001, not host-exposed | NestJS REST API — access via http://localhost/api |
+| `web`      | internal :3000, not host-exposed | Next.js 14 public site — access via http://localhost |
+| `admin`    | internal :3002, not host-exposed | Next.js 14 admin panel — access via http://localhost:3002 |
+| `nginx`    | 80, 3002     | Reverse proxy — :80 → public site + API, :3002 → admin panel + API |
+| `mailhog`  | 8025 (UI), 1025 (SMTP) | Mock SMTP UI (email transport is a stub — inbox will be empty) |
 
 > **ISR cache boundary:** The Next.js ISR cache lives on the local container filesystem. This setup is designed for single-replica deployment. For horizontal scaling (multiple `web` replicas) a custom Next.js Cache Handler backed by Redis must be implemented so all nodes share the same ISR cache and any revalidation request invalidates every replica simultaneously. The required package is `@neshca/cache-handler-redis-strings`. `next.config.ts` reads `cacheHandler` conditionally based on a `CACHE_HANDLER` env var (`redis` vs default disk), so the Redis handler can be enabled without a code change.
 
@@ -67,18 +67,28 @@
 git clone <repo>
 cd krontech-cms
 cp .env.example .env
-docker compose up --build
+docker compose up -d --build
+# First boot takes 3–5 minutes (compiling three TypeScript apps).
+# Watch progress: docker compose logs -f
+# Check status:   docker compose ps
 ```
 
-> **First boot:** The first `docker compose up --build` compiles three TypeScript applications and may take 3–5 minutes. Subsequent boots use Docker layer cache and take seconds. Watch the migrator exit cleanly (`✓ Seed complete`) before opening the browser.
+> **First boot:** The first `docker compose up -d --build` compiles three TypeScript applications and may take 3–5 minutes. Subsequent boots use Docker layer cache and take seconds. Watch the migrator exit cleanly (`✓ Seed complete`) before opening the browser.
 
-| App       | URL                        |
-|-----------|----------------------------|
-| Web       | http://localhost:3000      |
-| Admin     | http://localhost:3002      |
-| API docs  | http://localhost/api       |
-| MailHog   | http://localhost:8025      |
-| MinIO UI  | http://localhost:9001      |
+> **Re-seeding an existing database:** The seed is guarded — it skips if an admin user
+> already exists, preserving any content created in the admin panel. To reset to the baseline
+> seed data (e.g. for a clean demo): `docker compose exec api sh -c "cd /app/apps/api && FORCE_SEED=1 npx prisma db seed"`
+> Or do a full reset: `docker compose down -v && docker compose up -d --build`
+
+| App             | URL                                               |
+|-----------------|---------------------------------------------------|
+| Public site     | http://localhost              (nginx → Next.js web) |
+| Admin panel     | http://localhost:3002         (nginx → Next.js admin) |
+| API / Swagger   | http://localhost/api          (nginx → NestJS) |
+| MailHog UI      | http://localhost:8025                             |
+| MinIO console   | http://localhost:9001                             |
+| MinIO S3 API    | http://localhost:9000                             |
+| PostgreSQL      | localhost:5433                (direct, dev use only) |
 
 ---
 
@@ -112,6 +122,26 @@ Stateless for all normal requests — Redis is NOT a session store. Access token
 ### Admin UI: Refine + custom panels
 
 Refine handles table pagination, CRUD routing, and loading states — allowing full focus on the architecturally interesting panels: the SEO editor, component drag-and-drop editor, and cache invalidation controls. Pure custom-from-scratch would spend 60% of time on table pagination that carries no evaluation weight.
+
+### Rate limiting: per-user throttling via `AdminThrottlerGuard`
+
+NestJS `ThrottlerModule` is configured with four named throttlers: `default` (300 req/min,
+admin), `public` (60 req/min, public content), `auth` (10 req/min, login), and `form`
+(5 req/10 min, form submission). A global `APP_GUARD` applies all four to every route by
+default.
+
+The challenge: inside Docker, nginx sets `X-Forwarded-For` to the Docker bridge gateway IP
+(`172.x.x.1`) for all host traffic, not the real client IP. With a standard `ThrottlerGuard`
+keyed on IP, all browser sessions share a single throttle bucket — effectively limiting the
+entire admin panel to 10 requests/minute globally (the `auth` throttler's limit applying to
+every request that hadn't opted out).
+
+The fix: a custom `AdminThrottlerGuard` overrides `getTracker()` to return `req.user.id`
+(JWT sub) for authenticated requests and `req.ip` as fallback for unauthenticated ones.
+Each admin content controller applies `@SkipThrottle({ auth: true, public: true, form: true })`
+so only the `default` throttler runs — 300 req/min per authenticated user, matching the spec.
+Auth and form endpoints retain their specific throttlers. This is the correct architecture
+regardless of Docker networking topology.
 
 ### Cache: Next.js ISR owns content caching — Redis does NOT
 
@@ -181,6 +211,12 @@ GEO means structuring content so AI-powered search engines (ChatGPT, Gemini, Per
 
 NestJS uses `nestjs-pino` for structured JSON logging. Every request is logged with method, URL, status code, and latency. Every BullMQ job failure is logged at `error` level with job name and attempt count. Every database error is logged with query context (sanitized).
 
+> **Note — Email transport:** The `EmailProcessor` BullMQ worker enqueues email notification
+> jobs correctly, but the nodemailer SMTP transport is not wired in this implementation.
+> MailHog (`http://localhost:8025`) will receive no messages from form submissions. The
+> architecture is correct — replacing the stub with a real nodemailer/SES transport requires
+> only implementing the `EmailProcessor.process()` method body.
+
 In production, JSON logs are written to stdout and consumed by a log shipper (Filebeat/Datadog Agent) that forwards to ELK or Datadog. No code change is needed — the `pino-pretty` transport is only active when `NODE_ENV !== 'production'`.
 
 ---
@@ -206,55 +242,65 @@ When the URL structure changes (e.g. `/urunler/pam` → `/products/pam`), all ol
 ## Running Tests
 
 ```bash
-# Unit + integration tests (all apps)
-pnpm test
+# Unit + frontend tests (no Docker required)
+pnpm turbo run test
 
-# Type checking (all apps — must be zero errors)
+# TypeScript check across all packages
 pnpm turbo run typecheck
 
-# Backend unit tests only
-pnpm --filter @krontech/api test
-
-# Backend e2e tests (requires running Docker services)
-pnpm --filter @krontech/api test:e2e
-
-# Frontend unit tests only
-pnpm --filter @krontech/web test
+# E2e integration tests (requires live Docker stack)
+docker compose up -d          # ensure all services are healthy first
+cd apps/api && pnpm test:e2e  # runs auth + content lifecycle + public list endpoint suites
 ```
 
 ---
 
 ## Environment Variables
 
-Copy `.env.example` to `.env` and fill in secrets before running Docker.
+Copy `.env.example` to `.env` before first run. All variables must be set.
 
-> **Critical naming — Docker split:**
-> The project uses two sets of database/redis URLs:
-> - `DATABASE_URL` / `REDIS_URL` — host-machine values (e.g. `localhost:5433`), used by local `prisma migrate dev` and test runners outside Docker
-> - `DOCKER_DATABASE_URL` / `DOCKER_REDIS_URL` — Docker-internal values using service names (e.g. `postgres:5432`, `redis:6379`), used by the `api` and `migrator` containers
+### Critical distinction: build-time vs runtime
 
-| Variable | Type | Description |
-|---|---|---|
-| `POSTGRES_USER` | runtime | PostgreSQL username |
-| `POSTGRES_PASSWORD` | runtime | PostgreSQL password |
-| `POSTGRES_DB` | runtime | PostgreSQL database name |
-| `DATABASE_URL` | runtime | Prisma connection string — host machine (`localhost:5433`), used by `prisma migrate dev` and local test runners |
-| `DOCKER_DATABASE_URL` | runtime | Prisma connection string — Docker-internal (`postgres:5432`), used by `api` and `migrator` containers |
-| `REDIS_URL` | runtime | Redis connection string — host machine (`localhost:6379`), used by local test runners |
-| `DOCKER_REDIS_URL` | runtime | Redis connection string — Docker-internal (`redis:6379`), used by the `api` container |
-| `MINIO_ROOT_USER` | runtime | MinIO admin username |
-| `MINIO_ROOT_PASSWORD` | runtime | MinIO admin password |
-| `S3_ENDPOINT` | runtime | S3/MinIO endpoint URL (Docker-internal) |
-| `S3_BUCKET` | runtime | S3 bucket name |
-| `S3_ACCESS_KEY` | runtime | S3 access key |
-| `S3_SECRET_KEY` | runtime | S3 secret key |
-| `JWT_ACCESS_SECRET` | runtime | Access token signing secret — generate with `openssl rand -base64 64` |
-| `JWT_REFRESH_SECRET` | runtime | Refresh token signing secret — must differ from access secret |
-| `REVALIDATE_SECRET` | runtime | Shared secret for Next.js on-demand ISR revalidation |
-| `TURNSTILE_SECRET_KEY` | runtime | Cloudflare Turnstile secret (use test key `1x000...AA` in dev) |
-| `NEXT_PUBLIC_API_URL` | **build-time** | Public API base URL baked into the JS bundle — rebuild required on change |
-| `NEXT_PUBLIC_MEDIA_HOST` | **build-time** | Public media CDN/MinIO URL baked into the JS bundle |
-| `INTERNAL_MEDIA_HOST` | runtime | Docker-internal MinIO URL for server-side image fetching |
-| `INTERNAL_API_URL` | runtime | Docker-internal NestJS URL for Next.js server-side fetches (SSR/ISR) — `http://nginx/api` inside Docker |
-| `NODE_ENV` | runtime | `development` or `production` |
-| `ROBOTS_DISALLOW_ALL` | runtime | `true` in all non-production environments — outputs `Disallow: /` |
+**BUILD-TIME variables** are baked into the JavaScript bundle at `docker compose build`.
+Changing them requires a full rebuild (`docker compose up -d --build`), not just a restart.
+
+**RUNTIME variables** are read from `process.env` at request time inside the running
+container. Changing them requires only `docker compose restart <service>`.
+
+### Variable reference
+
+| Variable | Type | Used by | Description |
+|---|---|---|---|
+| `POSTGRES_USER` | runtime | postgres, migrator | PostgreSQL username |
+| `POSTGRES_PASSWORD` | runtime | postgres, migrator | PostgreSQL password |
+| `POSTGRES_DB` | runtime | postgres, migrator | PostgreSQL database name |
+| `DATABASE_URL` | runtime | local dev only | Host-machine Postgres URL (`localhost:5433`). Used by `prisma migrate dev` and test runners outside Docker. |
+| `DOCKER_DATABASE_URL` | runtime | api, migrator | Docker-internal Postgres URL (`postgres:5432`). Used inside containers. |
+| `REDIS_URL` | runtime | local dev only | Host-machine Redis URL (`localhost:6379`). Used by local test runners. |
+| `DOCKER_REDIS_URL` | runtime | api | Docker-internal Redis URL (`redis:6379`). Used inside containers. |
+| `MINIO_ROOT_USER` | runtime | minio | MinIO root username |
+| `MINIO_ROOT_PASSWORD` | runtime | minio | MinIO root password |
+| `S3_ENDPOINT` | runtime | api | S3/MinIO endpoint URL (internal: `http://minio:9000`) |
+| `S3_BUCKET` | runtime | api | S3/MinIO bucket name |
+| `S3_ACCESS_KEY` | runtime | api | S3/MinIO access key |
+| `S3_SECRET_KEY` | runtime | api | S3/MinIO secret key |
+| `JWT_ACCESS_SECRET` | runtime | api | Signs 15-minute access tokens. Generate: `openssl rand -base64 64` |
+| `JWT_REFRESH_SECRET` | runtime | api | Signs 7-day refresh tokens. Must differ from access secret. |
+| `REVALIDATE_SECRET` | runtime | api, web | Shared secret for Next.js ISR on-demand revalidation. Must match in both services. |
+| `TURNSTILE_SECRET_KEY` | runtime | api | Cloudflare Turnstile server-side validation key |
+| `NEXT_PUBLIC_API_URL` | **BUILD-TIME** | web, admin | Browser-accessible API base URL. Value: `http://localhost/api`. Changing requires `--build`. |
+| `NEXT_PUBLIC_MEDIA_HOST` | **BUILD-TIME** | web | Browser-accessible MinIO hostname. Value: `http://localhost:9000`. Changing requires `--build`. |
+| `INTERNAL_MEDIA_HOST` | runtime | web | Docker-internal MinIO hostname (`http://minio:9000`). Used by Next.js server-side image fetching. |
+| `INTERNAL_API_URL` | runtime | web | Docker-internal API URL (`http://nginx/api`). Used by Next.js server components during SSR/ISR — `NEXT_PUBLIC_API_URL` resolves to the container's own loopback server-side. |
+| `ROBOTS_DISALLOW_ALL` | runtime | web | Set `true` in all non-production environments to output `Disallow: /` for all crawlers. |
+| `NODE_ENV` | runtime | api, web, admin | `production` inside Docker, `development` for local dev |
+
+> **INTERNAL_API_URL vs NEXT_PUBLIC_API_URL:** Both point to the API, but for different callers.
+> `NEXT_PUBLIC_API_URL=http://localhost/api` is correct for the browser (user's machine resolves
+> localhost → nginx). `INTERNAL_API_URL=http://nginx/api` is correct for Next.js server components
+> running inside Docker (where localhost refers to the web container itself, not nginx). This is the
+> same pattern used for `INTERNAL_MEDIA_HOST` vs `NEXT_PUBLIC_MEDIA_HOST`.
+
+> **DOCKER_DATABASE_URL vs DATABASE_URL:** `DATABASE_URL` uses `localhost:5433` (the host-mapped
+> port) and is only used by tools running on your machine (Prisma CLI, test runners). Inside Docker,
+> Postgres is reachable only via the service name `postgres:5432`, hence `DOCKER_DATABASE_URL`.

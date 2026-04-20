@@ -7,13 +7,15 @@ import { BLUR_PLACEHOLDER } from '@/lib/media';
 
 interface VideoSectionProps {
   locale: string;
+  videoId: string;
+  thumbnailUrl?: string;
 }
 
-export function VideoSection({ locale: _locale }: VideoSectionProps) {
+export function VideoSection({ locale: _locale, videoId, thumbnailUrl }: VideoSectionProps) {
   const t = useTranslations('video');
   const [playing, setPlaying] = useState(false);
 
-  const youtubeId = 'dQw4w9WgXcQ';
+  const youtubeId = videoId;
 
   return (
     <section aria-label={t('sectionLabel')} className="py-20 bg-white mb-24">
@@ -40,7 +42,7 @@ export function VideoSection({ locale: _locale }: VideoSectionProps) {
                 className="relative w-full group"
               >
                 <Image
-                  src="/assets/uploads/content/kron-anadolu-efes.jpg"
+                  src={thumbnailUrl ?? '/assets/uploads/content/kron-anadolu-efes.jpg'}
                   alt={t('title')}
                   width={735}
                   height={500}

@@ -9,6 +9,7 @@ import { SeoMetaPanel } from '@/components/seo/SeoMetaPanel';
 import { PublishControls } from '@/components/publish/PublishControls';
 import { MediaPicker } from '@/components/media/MediaPicker';
 import api from '@/lib/api';
+import { toPublicUrl } from '@/lib/media';
 
 interface MediaItem {
   id: string;
@@ -183,7 +184,7 @@ export default function EditProductPage({ params }: EditProductProps) {
                       <div className="aspect-square bg-gray-100 relative">
                         {pm.media.mimeType.startsWith('image/') && (
                           <Image
-                            src={pm.media.publicUrl}
+                            src={toPublicUrl(pm.media.publicUrl)}
                             alt={pm.media.altText?.tr ?? ''}
                             fill
                             className="object-cover"

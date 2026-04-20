@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Image from 'next/image';
 import api from '@/lib/api';
+import { toPublicUrl } from '@/lib/media';
 
 interface MediaItem {
   id: string;
@@ -95,7 +96,7 @@ export function MediaPicker({ open, onSelect, onClose }: MediaPickerProps) {
                   <div className="aspect-square bg-gray-100 relative">
                     {item.mimeType.startsWith('image/') ? (
                       <Image
-                        src={item.publicUrl}
+                        src={toPublicUrl(item.publicUrl)}
                         alt={item.altText?.tr ?? item.originalName}
                         fill
                         className="object-cover"

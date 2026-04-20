@@ -1,30 +1,55 @@
 import type { Metadata } from 'next';
+import { unstable_noStore as noStore } from 'next/cache';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import type { Locale } from '@/lib/i18n';
-import { HeroSlider } from '@/components/home/HeroSlider';
-import { ProductCatalog } from '@/components/home/ProductCatalog';
-import { KuppingerColeSection } from '@/components/home/KuppingerColeSection';
-import { WhyKron } from '@/components/home/WhyKron';
-import { StatsBanner } from '@/components/home/StatsBanner';
-import { VideoSection } from '@/components/home/VideoSection';
-import { BlogCarousel } from '@/components/home/BlogCarousel';
-import { ContactSection } from '@/components/home/ContactSection';
+import { apiFetch } from '@/lib/api';
 import { SeoHead } from '@/components/shared/SeoHead';
+import { SectionRenderer } from '@/components/SectionRenderer';
+import type { ApiPageComponent } from '@/components/SectionRenderer';
+
+export const revalidate = 60;
+
+// Slug used by the homepage Page record in the DB
+const HOMEPAGE_SLUG: Record<Locale, string> = { tr: 'anasayfa', en: 'home' };
+
+interface LocaleMap { tr: string; en: string }
+
+interface ApiPage {
+  id: string;
+  slug: LocaleMap;
+  components: ApiPageComponent[];
+  seo: {
+    metaTitle: LocaleMap | null;
+    metaDescription: LocaleMap | null;
+    ogImage: { publicUrl: string } | null;
+  } | null;
+}
 
 interface PageProps {
   params: { locale: string };
 }
 
+async function getHomePage(locale: Locale): Promise<ApiPage | null> {
+  return apiFetch<ApiPage>(`/v1/public/pages/${locale}/${HOMEPAGE_SLUG[locale]}`, {
+    next: { revalidate: 60 },
+  });
+}
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const locale = params.locale as Locale;
   const t = await getTranslations({ locale, namespace: 'common' });
+  const page = await getHomePage(locale);
+
+  const title = page?.seo?.metaTitle?.[locale]
+    ?? (locale === 'tr' ? 'Siber Güvenlik Çözümleri | Krontech' : 'Cybersecurity Solutions | Krontech');
+  const description = page?.seo?.metaDescription?.[locale]
+    ?? (locale === 'tr'
+      ? 'Krontech, PAM, DAM, DDM ve diğer siber güvenlik çözümleriyle işletmenizi korur.'
+      : 'Krontech protects your business with PAM, DAM, DDM and other cybersecurity solutions.');
 
   return {
-    title: locale === 'tr' ? 'Siber Güvenlik Çözümleri | Krontech' : 'Cybersecurity Solutions | Krontech',
-    description:
-      locale === 'tr'
-        ? 'Krontech, PAM, DAM, DDM ve diğer siber güvenlik çözümleriyle işletmenizi korur.'
-        : 'Krontech protects your business with PAM, DAM, DDM and other cybersecurity solutions.',
+    title,
+    description,
     alternates: {
       canonical: `https://krontech.com/${locale}`,
       languages: {
@@ -38,11 +63,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       description: 'PAM, DAM, DDM and more.',
       type: 'website',
       url: `https://krontech.com/${locale}`,
+      images: page?.seo?.ogImage ? [{ url: page.seo.ogImage.publicUrl }] : [],
     },
-    twitter: {
-      card: 'summary_large_image',
-      title: 'Krontech',
-    },
+    twitter: { card: 'summary_large_image', title: 'Krontech' },
     other: { _t: t('home') },
   };
 }
@@ -66,21 +89,18 @@ const webSiteJsonLd = {
 export default async function HomePage({ params }: PageProps) {
   const locale = params.locale as Locale;
   setRequestLocale(locale);
-  const marginTop = locale === 'en' ? '212px' : '156px';
+
+  const page = await getHomePage(locale);
+  if (page === null) noStore();
 
   return (
     <>
       <SeoHead jsonLd={organizationJsonLd} />
       <SeoHead jsonLd={webSiteJsonLd} />
-      <div style={{ marginTop }}>
-        <HeroSlider locale={locale} />
-        <ProductCatalog locale={locale} />
-        <KuppingerColeSection locale={locale} />
-        <WhyKron locale={locale} />
-        <StatsBanner locale={locale} />
-        <VideoSection locale={locale} />
-        <BlogCarousel locale={locale} />
-        <ContactSection locale={locale} />
+      <div>
+        {page?.components.map((section) => (
+          <SectionRenderer key={section.id} section={section} locale={locale} />
+        ))}
       </div>
     </>
   );

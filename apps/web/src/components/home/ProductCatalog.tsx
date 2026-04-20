@@ -1,7 +1,7 @@
 import dynamic from 'next/dynamic';
+import { unstable_noStore as noStore } from 'next/cache';
 import { getTranslations } from 'next-intl/server';
 import type { Locale } from '@/lib/i18n';
-import { products as fixtureProducts } from '@/fixtures/products';
 import type { ProductCard } from '@/fixtures/types';
 import { apiFetch } from '@/lib/api';
 import { BLUR_PLACEHOLDER } from '@/lib/media';
@@ -41,10 +41,9 @@ export async function ProductCatalog({ locale }: ProductCatalogProps) {
     `/v1/public/products/${locale}`,
     { next: { revalidate: 60 } },
   );
-  const products: ProductCard[] =
-    Array.isArray(apiProducts) && apiProducts.length > 0
-      ? apiProducts.map((p) => adaptProduct(p, locale))
-      : fixtureProducts;
+  if (apiProducts === null) noStore();
+  if (!apiProducts || apiProducts.length === 0) return null;
+  const products: ProductCard[] = apiProducts.map((p) => adaptProduct(p, locale));
 
   return (
     <section

@@ -12,7 +12,7 @@ export class CacheService {
   ) {}
 
   async invalidateContent(paths: string[]): Promise<void> {
-    const base = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') ?? '';
+    const base = process.env.WEB_INTERNAL_URL ?? '';
     const revalidateUrl = `${base}/api/revalidate`;
     for (const path of paths) {
       try {
