@@ -2,11 +2,13 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  UnprocessableEntityException,
 } from '@nestjs/common';
 import { FormDefinition, FormSubmission, Prisma } from '@prisma/client';
 import { Queue } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateFormDto, UpdateFormDto, SubmitFormDto } from '@krontech/types';
+import { TurnstileService } from './turnstile.service';
+import { CreateFormDto, UpdateFormDto, SubmitFormDto, FormField } from '@krontech/types';
 
 const REDIS_CONNECTION = {
   host: process.env.REDIS_HOST ?? 'redis',
@@ -18,7 +20,10 @@ export class FormsService {
   private readonly emailQueue: Queue;
   private readonly webhookQueue: Queue;
 
-  constructor(private readonly prisma: PrismaService) {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly turnstile: TurnstileService,
+  ) {
     this.emailQueue = new Queue('email', { connection: REDIS_CONNECTION });
     this.webhookQueue = new Queue('webhook', { connection: REDIS_CONNECTION });
   }
@@ -36,8 +41,11 @@ export class FormsService {
     });
   }
 
-  async findAllForms(): Promise<FormDefinition[]> {
-    return this.prisma.formDefinition.findMany({ orderBy: { createdAt: 'desc' } });
+  async findAllForms() {
+    return this.prisma.formDefinition.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: { _count: { select: { submissions: true } } },
+    });
   }
 
   async findOneForm(id: string): Promise<FormDefinition> {
@@ -82,6 +90,11 @@ export class FormsService {
       return { id: 'bot-suppressed' } as FormSubmission;
     }
 
+    const turnstileValid = await this.turnstile.verify(dto.turnstileToken, ip);
+    if (!turnstileValid) {
+      throw new UnprocessableEntityException('Captcha verification failed');
+    }
+
     if (!(dto.consentGiven as boolean)) {
       throw new BadRequestException('Consent is required');
     }
@@ -102,12 +115,18 @@ export class FormsService {
       },
     });
 
-    const jobOptions = { attempts: 3, backoff: { type: 'exponential', delay: 1000 } };
+    const jobOptions = { attempts: 3, backoff: { type: 'exponential', delay: 2000 } };
 
     if (form.notifyEmail) {
       await this.emailQueue.add(
         'notify',
-        { to: form.notifyEmail, formName: form.name, submissionId: submission.id, data: dto.data },
+        {
+          to: form.notifyEmail,
+          subject: `New submission: ${form.name}`,
+          formName: form.name,
+          submissionData: dto.data as Record<string, unknown>,
+          submittedAt: new Date().toISOString(),
+        },
         jobOptions,
       );
     }
@@ -138,5 +157,26 @@ export class FormsService {
       this.prisma.formSubmission.count({ where: { formId } }),
     ]);
     return { data, total };
+  }
+
+  async exportSubmissionsCsv(formId: string): Promise<string> {
+    const form = await this.prisma.formDefinition.findUniqueOrThrow({
+      where: { id: formId },
+      include: { submissions: { orderBy: { createdAt: 'desc' } } },
+    });
+
+    const fields = (form.fields as FormField[]).map((f) => f.name);
+    const headers = ['id', 'submittedAt', 'ip', 'consentGiven', ...fields];
+
+    const rows = form.submissions.map((s) => {
+      const data = s.data as Record<string, unknown>;
+      const values = fields.map((f) => {
+        const val = String(data[f] ?? '');
+        return `"${val.replace(/"/g, '""')}"`;
+      });
+      return [s.id, s.createdAt.toISOString(), s.ip, String(s.consentGiven), ...values].join(',');
+    });
+
+    return [headers.join(','), ...rows].join('\n');
   }
 }

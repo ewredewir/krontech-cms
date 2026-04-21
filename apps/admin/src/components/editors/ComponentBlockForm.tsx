@@ -332,7 +332,7 @@ function VideoForm({ initialData, onSave, onCancel }: Omit<ComponentBlockFormPro
     <form onSubmit={(e) => { void handleSubmit(d => onSave(d as Record<string, unknown>))(e); }} className="space-y-3">
       <div>
         <label className="block text-sm font-medium mb-1">YouTube Video ID</label>
-        <input {...register('videoId')} className="w-full border px-2 py-1.5 text-sm focus:outline-none focus:border-primary" placeholder="e.g. dQw4w9WgXcQ" />
+        <input {...register('videoId')} className="w-full border px-2 py-1.5 text-sm focus:outline-none focus:border-primary" placeholder="e.g. Ag2dQLxBzdE" />
         <p className="text-xs text-gray-400 mt-1">Enter only the ID portion, not the full URL.</p>
       </div>
       {videoId.length === 11 && (

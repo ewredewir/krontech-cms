@@ -7,7 +7,6 @@ import { AuthGuard } from '@/components/layout/AuthGuard';
 import { RichTextEditor } from '@/components/editors/RichTextEditor';
 import { SeoMetaPanel } from '@/components/seo/SeoMetaPanel';
 import { PublishControls } from '@/components/publish/PublishControls';
-import { MediaPicker } from '@/components/media/MediaPicker';
 import api from '@/lib/api';
 import { toPublicUrl } from '@/lib/media';
 
@@ -56,7 +55,7 @@ export default function EditProductPage({ params }: EditProductProps) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [locale, setLocale] = useState<'tr' | 'en'>('tr');
-  const [pickerOpen, setPickerOpen] = useState(false);
+  const [addMediaId, setAddMediaId] = useState('');
 
   const load = async () => {
     setLoading(true);
@@ -113,9 +112,12 @@ export default function EditProductPage({ params }: EditProductProps) {
     setProduct(p => p ? { ...p, features: p.features.filter((_, i) => i !== idx) } : p);
   };
 
-  const handleAddMedia = async (media: MediaItem) => {
+  const handleAddMediaById = async () => {
+    const id = addMediaId.trim();
+    if (!id) return;
     try {
-      await api.post(`/products/${params.id}/media/${media.id}`);
+      await api.post(`/products/${params.id}/media/${id}`);
+      setAddMediaId('');
       void load();
     } catch {
       setError('Failed to add media');
@@ -245,10 +247,21 @@ export default function EditProductPage({ params }: EditProductProps) {
 
             {/* Media gallery */}
             <section className="bg-white border border-gray-200 p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-sm font-semibold">Media Gallery</h2>
-                <button type="button" onClick={() => setPickerOpen(true)}
-                  className="text-sm text-primary hover:underline">+ Add Media</button>
+              <h2 className="text-sm font-semibold mb-4">Media Gallery</h2>
+              <div className="flex gap-2 mb-4">
+                <input
+                  value={addMediaId}
+                  onChange={e => setAddMediaId(e.target.value)}
+                  className="flex-1 border border-gray-300 px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary"
+                  placeholder="Paste media UUID"
+                />
+                <button
+                  type="button"
+                  onClick={() => { void handleAddMediaById(); }}
+                  className="border border-gray-300 px-3 py-2 text-sm hover:bg-gray-50"
+                >
+                  Add
+                </button>
               </div>
               <div className="grid grid-cols-4 gap-3">
                 {(product.mediaItems ?? [])
@@ -279,7 +292,6 @@ export default function EditProductPage({ params }: EditProductProps) {
                     </div>
                   ))}
               </div>
-              <MediaPicker open={pickerOpen} onSelect={m => { void handleAddMedia(m); }} onClose={() => setPickerOpen(false)} />
             </section>
 
             <SeoMetaPanel entityType="product" entityId={product.id} locale={locale}

@@ -591,14 +591,14 @@ async function main() {
 
   await prisma.pageComponent.upsert({
     where: { id: IDS.component.contact_form },
-    update: { data: { __type: 'form_embed', formId: contactForm.id } },
+    update: { data: { __type: 'form_embed', formId: contactForm.id, formSlug: 'contact' } },
     create: {
       id: IDS.component.contact_form,
       pageId: IDS.page.contact,
       type: ComponentType.form_embed,
       order: 2,
       isVisible: true,
-      data: { __type: 'form_embed', formId: contactForm.id },
+      data: { __type: 'form_embed', formId: contactForm.id, formSlug: 'contact' },
     },
   });
 
@@ -628,14 +628,14 @@ async function main() {
 
   await prisma.pageComponent.upsert({
     where: { id: IDS.component.demo_form },
-    update: { data: { __type: 'form_embed', formId: demoForm.id } },
+    update: { data: { __type: 'form_embed', formId: demoForm.id, formSlug: 'demo' } },
     create: {
       id: IDS.component.demo_form,
       pageId: IDS.page.demo,
       type: ComponentType.form_embed,
       order: 2,
       isVisible: true,
-      data: { __type: 'form_embed', formId: demoForm.id },
+      data: { __type: 'form_embed', formId: demoForm.id, formSlug: 'demo' },
     },
   });
 

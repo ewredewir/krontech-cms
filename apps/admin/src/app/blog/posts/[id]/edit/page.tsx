@@ -27,6 +27,7 @@ interface BlogPost {
   status: 'DRAFT' | 'PUBLISHED' | 'SCHEDULED';
   scheduledAt?: string;
   categoryId?: string | null;
+  featuredImageId?: string | null;
   tags: Tag[];
   seo?: Record<string, unknown>;
 }
@@ -77,6 +78,7 @@ export default function EditBlogPostPage({ params }: EditBlogPostProps) {
         excerpt: post.excerpt,
         body: post.body,
         categoryId: post.categoryId ?? null,
+        featuredImageId: post.featuredImageId ?? null,
         tagIds: post.tags.map(t => t.id),
       });
     } catch {
@@ -170,6 +172,16 @@ export default function EditBlogPostPage({ params }: EditBlogPostProps) {
                   value={post.body?.[locale] ?? ''}
                   onChange={val => setField('body', locale, val)}
                 />
+                <div>
+                  <label htmlFor="featuredImageId" className="block text-sm font-medium mb-1">Featured Image ID (UUID)</label>
+                  <input
+                    id="featuredImageId"
+                    value={post.featuredImageId ?? ''}
+                    onChange={e => setPost(p => p ? { ...p, featuredImageId: e.target.value || null } : p)}
+                    className="w-full border border-gray-300 px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary"
+                    placeholder="Paste media UUID"
+                  />
+                </div>
                 {error && <p className="text-red-500 text-sm">{error}</p>}
                 <button type="submit" disabled={saving}
                   className="bg-primary text-white px-4 py-2 text-sm font-medium hover:bg-blue-700 disabled:opacity-50">

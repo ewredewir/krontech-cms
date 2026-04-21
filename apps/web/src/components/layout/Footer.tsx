@@ -124,14 +124,6 @@ export function Footer({ locale }: FooterProps) {
       <div className="bg-sub-footer py-4">
         <div className="max-w-[1400px] mx-auto px-6 flex flex-col nav:flex-row items-center justify-between gap-2 text-xs text-gray-500">
           <p>{t('copyright', { year })}</p>
-          <div className="flex gap-4">
-            <Link href={`/${locale}/${locale === 'tr' ? 'gizlilik' : 'privacy'}`} className="hover:text-primary transition-colors">
-              {t('privacy')}
-            </Link>
-            <Link href={`/${locale}/kvkk`} className="hover:text-primary transition-colors">
-              {t('kvkk')}
-            </Link>
-          </div>
         </div>
       </div>
     </footer>

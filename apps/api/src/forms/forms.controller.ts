@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Header,
   HttpCode,
   HttpStatus,
   Param,
@@ -11,6 +12,7 @@ import {
   Post,
   Query,
   Req,
+  StreamableFile,
   UseGuards,
 } from '@nestjs/common';
 import { SkipThrottle, Throttle } from '@nestjs/throttler';
@@ -88,6 +90,17 @@ export class FormsController {
     @Query() pagination: PaginationDto,
   ) {
     return this.formsService.getSubmissions(id, pagination);
+  }
+
+  @Get('forms/:id/submissions/export')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Header('Content-Type', 'text/csv')
+  @Header('Content-Disposition', 'attachment; filename="submissions.csv"')
+  @ApiOperation({ summary: 'Export submissions as CSV' })
+  async exportSubmissions(@Param('id', ParseUUIDPipe) id: string): Promise<StreamableFile> {
+    const csv = await this.formsService.exportSubmissionsCsv(id);
+    return new StreamableFile(Buffer.from(csv, 'utf-8'));
   }
 
   // ─── Public endpoints ────────────────────────────────────────────────────────

@@ -2,24 +2,10 @@
 export const dynamic = 'force-dynamic';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import { AuthGuard } from '@/components/layout/AuthGuard';
-import { MediaPicker } from '@/components/media/MediaPicker';
 import { RichTextEditor } from '@/components/editors/RichTextEditor';
 import api from '@/lib/api';
-import { toPublicUrl } from '@/lib/media';
-
-interface MediaItem {
-  id: string;
-  publicUrl: string;
-  originalName: string;
-  mimeType: string;
-  altText: { tr: string; en: string };
-  blurDataUrl: string | null;
-  width: number | null;
-  height: number | null;
-}
 
 export default function CreateProductPage() {
   const router = useRouter();
@@ -32,8 +18,7 @@ export default function CreateProductPage() {
   const [descriptionTr, setDescriptionTr] = useState('');
   const [descriptionEn, setDescriptionEn] = useState('');
   const [locale, setLocale] = useState<'tr' | 'en'>('tr');
-  const [featuredImage, setFeaturedImage] = useState<MediaItem | null>(null);
-  const [pickerOpen, setPickerOpen] = useState(false);
+  const [featuredImageId, setFeaturedImageId] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -51,8 +36,8 @@ export default function CreateProductPage() {
         description: { tr: descriptionTr, en: descriptionEn },
       });
       const productId = res.data.id;
-      if (featuredImage) {
-        await api.post(`/products/${productId}/media/${featuredImage.id}`);
+      if (featuredImageId) {
+        await api.post(`/products/${productId}/media/${featuredImageId}`);
       }
       router.push(`/products/${productId}/edit`);
     } catch {
@@ -125,32 +110,14 @@ export default function CreateProductPage() {
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium">Image</label>
-                <button type="button" onClick={() => setPickerOpen(true)} className="text-sm text-primary hover:underline">
-                  {featuredImage ? 'Change' : '+ Select Image'}
-                </button>
-              </div>
-              {featuredImage && (
-                <div className="flex items-center gap-3 border border-gray-200 p-2">
-                  <div className="w-16 h-16 bg-gray-100 relative flex-shrink-0">
-                    {featuredImage.mimeType.startsWith('image/') && (
-                      <Image
-                        src={toPublicUrl(featuredImage.publicUrl)}
-                        alt={featuredImage.altText?.tr ?? featuredImage.originalName}
-                        fill
-                        className="object-cover"
-                        sizes="64px"
-                        placeholder={featuredImage.blurDataUrl ? 'blur' : 'empty'}
-                        blurDataURL={featuredImage.blurDataUrl ?? undefined}
-                        unoptimized
-                      />
-                    )}
-                  </div>
-                  <span className="text-sm text-gray-600 truncate flex-1">{featuredImage.originalName}</span>
-                  <button type="button" onClick={() => setFeaturedImage(null)} className="text-xs text-red-500 hover:underline flex-shrink-0">Remove</button>
-                </div>
-              )}
+              <label htmlFor="featuredImageId" className="block text-sm font-medium mb-1">Image ID (UUID)</label>
+              <input
+                id="featuredImageId"
+                value={featuredImageId}
+                onChange={e => setFeaturedImageId(e.target.value)}
+                className="w-full border border-gray-300 px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary"
+                placeholder="Paste media UUID"
+              />
             </div>
 
             {error && <p className="text-red-500 text-sm">{error}</p>}
@@ -160,8 +127,6 @@ export default function CreateProductPage() {
             </button>
           </form>
         </div>
-
-        <MediaPicker open={pickerOpen} onSelect={setFeaturedImage} onClose={() => setPickerOpen(false)} />
       </AdminLayout>
     </AuthGuard>
   );

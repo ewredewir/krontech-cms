@@ -21,8 +21,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: '/forms', label: 'Forms', icon: '≡' },
   { href: '/navigation', label: 'Navigation', icon: '☰' },
   { href: '/redirects', label: 'Redirects', icon: '↗' },
-  { href: '/users', label: 'Users', icon: '◉', adminOnly: true },
-  { href: '/audit-log', label: 'Audit Log', icon: '☰', adminOnly: true },
+{ href: '/audit-log', label: 'Audit Log', icon: '☰', adminOnly: true },
 ];
 
 interface AdminLayoutProps {

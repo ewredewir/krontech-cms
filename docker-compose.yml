@@ -133,8 +133,9 @@ services:
       dockerfile: apps/web/Dockerfile
       args:
         # BUILD-TIME: baked into the JS bundle. Changing requires --build.
-        NEXT_PUBLIC_API_URL:   ${NEXT_PUBLIC_API_URL}
-        NEXT_PUBLIC_MEDIA_HOST: ${NEXT_PUBLIC_MEDIA_HOST}
+        NEXT_PUBLIC_API_URL:            ${NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_MEDIA_HOST:         ${NEXT_PUBLIC_MEDIA_HOST}
+        NEXT_PUBLIC_TURNSTILE_SITE_KEY: ${NEXT_PUBLIC_TURNSTILE_SITE_KEY}
     # Build runs here at container start, after api: service_healthy passes.
     # This prevents the race condition where next build runs before the DB is seeded.
     command: sh -c "pnpm turbo run build --filter=@krontech/web && pnpm --filter=@krontech/web start"

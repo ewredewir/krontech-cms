@@ -7,6 +7,11 @@ import { WhyKron } from '@/components/home/WhyKron';
 import { StatsBanner } from '@/components/home/StatsBanner';
 import { VideoSection } from '@/components/home/VideoSection';
 import { ContactSection } from '@/components/home/ContactSection';
+import { ContactForm } from '@/components/shared/ContactForm';
+import { DemoRequestForm } from '@/components/shared/DemoRequestForm';
+
+// Stable seed ID for the demo form — used as fallback before formSlug is in component data
+const DEMO_FORM_ID = '50000000-0000-0000-0000-000000000002';
 import type { CmsSlide } from '@/components/home/HeroSlider';
 
 interface LocaleMap { tr: string; en: string }
@@ -170,7 +175,14 @@ export function SectionRenderer({ section, locale }: { section: ApiPageComponent
     case 'kuppinger_cole':  return <KuppingerColeBlock data={data} locale={locale} />;
     case 'product_catalog': return <ProductCatalog locale={locale} />;
     case 'blog_carousel':   return <BlogCarousel locale={locale} />;
-    // media_block and form_embed require media/form infrastructure not yet wired in web
+    case 'form_embed': {
+      const isDemo = (data.formSlug as string) === 'demo' || (data.formId as string) === DEMO_FORM_ID;
+      return (
+        <section className="max-w-[860px] mx-auto px-6 nav:px-10 py-16">
+          {isDemo ? <DemoRequestForm locale={locale} /> : <ContactForm locale={locale} />}
+        </section>
+      );
+    }
     default: return null;
   }
 }

@@ -44,6 +44,7 @@ export default function CreateBlogPostPage() {
   const [bodyTr, setBodyTr] = useState('');
   const [bodyEn, setBodyEn] = useState('');
   const [locale, setLocale] = useState<'tr' | 'en'>('tr');
+  const [featuredImageId, setFeaturedImageId] = useState('');
   const [featuredImage, setFeaturedImage] = useState<MediaItem | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [error, setError] = useState('');
@@ -72,7 +73,7 @@ export default function CreateBlogPostPage() {
         slug: { tr: slugTr, en: slugEn },
         categoryId: categoryId || undefined,
         tagIds: selectedTagIds,
-        featuredImageId: featuredImage?.id ?? undefined,
+        featuredImageId: featuredImageId || undefined,
         excerpt: { tr: '', en: '' },
         body: { tr: bodyTr, en: bodyEn },
       });
@@ -179,6 +180,16 @@ export default function CreateBlogPostPage() {
                   <button type="button" onClick={() => setFeaturedImage(null)} className="text-xs text-red-500 hover:underline flex-shrink-0">Remove</button>
                 </div>
               )}
+              <div className="mt-2">
+                <label htmlFor="featuredImageId" className="block text-xs font-medium text-gray-500 mb-1">Featured Image ID (UUID)</label>
+                <input
+                  id="featuredImageId"
+                  value={featuredImageId}
+                  onChange={e => setFeaturedImageId(e.target.value)}
+                  className="w-full border border-gray-300 px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary"
+                  placeholder="Paste media UUID"
+                />
+              </div>
             </div>
             {error && <p className="text-red-500 text-sm">{error}</p>}
             <button type="submit" disabled={saving} className="bg-primary text-white px-4 py-2 text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
