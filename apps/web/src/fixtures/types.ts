@@ -29,6 +29,7 @@ export interface BlogPost {
   slug: LocaleMap;
   title: LocaleMap;
   excerpt: LocaleMap;
+  body: LocaleMap;
   category: 'blog' | 'haber';
   image: string;
   publishedAt: string;

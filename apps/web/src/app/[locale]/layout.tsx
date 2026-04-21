@@ -1,9 +1,7 @@
 import type { Metadata } from 'next';
-import { unstable_noStore as noStore } from 'next/cache';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, getTranslations, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
-import { Suspense } from 'react';
 import { locales } from '@/lib/i18n';
 import type { Locale } from '@/lib/i18n';
 import { Header } from '@/components/layout/Header';
@@ -12,7 +10,7 @@ import { AnnouncementBar } from '@/components/layout/AnnouncementBar';
 import { PreviewBanner } from '@/components/layout/PreviewBanner';
 import { roboto } from '@/app/fonts';
 import { apiFetch } from '@/lib/api';
-import type { NavItem } from '@/fixtures/types';
+import type { NavItem } from '@/types';
 
 interface NavTreeItem {
   id: string;
@@ -92,7 +90,6 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
     }),
   ]);
 
-  if (navTree === null || slugPairs === null) noStore();
   const navItems = navTree ? toNavItems(navTree) : undefined;
 
   const slugMap: SlugMap = { tr: {}, en: {} };
@@ -117,9 +114,7 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
           <Header locale={locale} navItems={navItems} slugMap={slugMap} />
           <main>{children}</main>
           <Footer locale={locale} />
-          <Suspense>
-            <PreviewBanner />
-          </Suspense>
+          <PreviewBanner />
         </NextIntlClientProvider>
       </body>
     </html>

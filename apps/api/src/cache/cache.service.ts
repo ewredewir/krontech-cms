@@ -27,6 +27,22 @@ export class CacheService {
     }
   }
 
+  async invalidateTags(tags: string[]): Promise<void> {
+    const base = process.env.WEB_INTERNAL_URL ?? '';
+    const revalidateUrl = `${base}/api/revalidate`;
+    for (const tag of tags) {
+      try {
+        await fetch(revalidateUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tag, secret: process.env.REVALIDATE_SECRET }),
+        });
+      } catch (err) {
+        this.logger.error({ tag, err }, 'Failed to revalidate Next.js tag');
+      }
+    }
+  }
+
   async invalidateRedirects(): Promise<void> {
     await this.redis.del('redirects:all');
   }

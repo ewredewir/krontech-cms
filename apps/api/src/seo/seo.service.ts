@@ -10,13 +10,17 @@ import {
   User,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { CacheService } from '../cache/cache.service';
 import { UpdateSeoMetaDto } from '@krontech/types';
 
 type LocaleMap = { tr: string; en: string };
 
 @Injectable()
 export class SeoService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cacheService: CacheService,
+  ) {}
 
   async upsertForPage(pageId: string, dto: UpdateSeoMetaDto): Promise<SeoMeta> {
     const page = await this.prisma.page.findUniqueOrThrow({
@@ -24,20 +28,28 @@ export class SeoService {
       include: { seo: true },
     });
 
+    let seo: SeoMeta;
     if (page.seo) {
-      return this.prisma.seoMeta.update({
+      seo = await this.prisma.seoMeta.update({
         where: { id: page.seo.id },
         data: dto as Prisma.SeoMetaUpdateInput,
       });
+    } else {
+      seo = await this.prisma.seoMeta.create({
+        data: dto as Prisma.SeoMetaCreateInput,
+      });
+      await this.prisma.page.update({
+        where: { id: pageId },
+        data: { seoMetaId: seo.id },
+      });
     }
 
-    const seo = await this.prisma.seoMeta.create({
-      data: dto as Prisma.SeoMetaCreateInput,
-    });
-    await this.prisma.page.update({
-      where: { id: pageId },
-      data: { seoMetaId: seo.id },
-    });
+    if (page.status === 'PUBLISHED') {
+      const slug = page.slug as LocaleMap;
+      const paths = [`/tr/${slug.tr}`, `/en/${slug.en}`];
+      if (slug.tr === 'anasayfa' || slug.en === 'home') paths.push('/tr', '/en');
+      void this.cacheService.invalidateContent(paths);
+    }
     return seo;
   }
 
@@ -47,20 +59,29 @@ export class SeoService {
       include: { seo: true },
     });
 
+    let seo: SeoMeta;
     if (post.seo) {
-      return this.prisma.seoMeta.update({
+      seo = await this.prisma.seoMeta.update({
         where: { id: post.seo.id },
         data: dto as Prisma.SeoMetaUpdateInput,
       });
+    } else {
+      seo = await this.prisma.seoMeta.create({
+        data: dto as Prisma.SeoMetaCreateInput,
+      });
+      await this.prisma.blogPost.update({
+        where: { id: postId },
+        data: { seoMetaId: seo.id },
+      });
     }
 
-    const seo = await this.prisma.seoMeta.create({
-      data: dto as Prisma.SeoMetaCreateInput,
-    });
-    await this.prisma.blogPost.update({
-      where: { id: postId },
-      data: { seoMetaId: seo.id },
-    });
+    if (post.status === 'PUBLISHED') {
+      const slug = post.slug as LocaleMap;
+      void this.cacheService.invalidateContent([
+        `/tr/blog/${slug.tr}`,
+        `/en/blog/${slug.en}`,
+      ]);
+    }
     return seo;
   }
 
@@ -70,20 +91,29 @@ export class SeoService {
       include: { seo: true },
     });
 
+    let seo: SeoMeta;
     if (product.seo) {
-      return this.prisma.seoMeta.update({
+      seo = await this.prisma.seoMeta.update({
         where: { id: product.seo.id },
         data: dto as Prisma.SeoMetaUpdateInput,
       });
+    } else {
+      seo = await this.prisma.seoMeta.create({
+        data: dto as Prisma.SeoMetaCreateInput,
+      });
+      await this.prisma.product.update({
+        where: { id: productId },
+        data: { seoMetaId: seo.id },
+      });
     }
 
-    const seo = await this.prisma.seoMeta.create({
-      data: dto as Prisma.SeoMetaCreateInput,
-    });
-    await this.prisma.product.update({
-      where: { id: productId },
-      data: { seoMetaId: seo.id },
-    });
+    if (product.status === 'PUBLISHED') {
+      const slug = product.slug as LocaleMap;
+      void this.cacheService.invalidateContent([
+        `/tr/products/${slug.tr}`,
+        `/en/products/${slug.en}`,
+      ]);
+    }
     return seo;
   }
 

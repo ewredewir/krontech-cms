@@ -9,7 +9,7 @@ import { NavDropdown } from '@/components/nav/NavDropdown';
 import { LanguageSwitcher } from '@/components/nav/LanguageSwitcher';
 import { MobileNav } from '@/components/layout/MobileNav';
 import { navItemsTr, navItemsEn } from '@/fixtures/navigation';
-import type { NavItem } from '@/fixtures/types';
+import type { NavItem } from '@/types';
 import type { Locale } from '@/lib/i18n';
 
 interface HeaderProps {

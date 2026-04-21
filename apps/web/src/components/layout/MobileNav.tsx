@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import type { NavItem } from '@/fixtures/types';
+import type { NavItem } from '@/types';
 import type { Locale } from '@/lib/i18n';
 
 interface MobileNavProps {

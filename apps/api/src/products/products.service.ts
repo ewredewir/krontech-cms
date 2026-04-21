@@ -44,7 +44,27 @@ export class ProductsService {
       diff: dto,
       ipAddress,
     });
+    if (product.status === 'PUBLISHED') {
+      void this.cacheService.invalidateContent(this.listPaths());
+    }
     return product;
+  }
+
+  private listPaths(): string[] {
+    return ['/tr/products', '/en/products'];
+  }
+
+  private async invalidateProductDetail(productId: string): Promise<void> {
+    const product = await this.prisma.product.findUnique({
+      where: { id: productId },
+      select: { slug: true, status: true },
+    });
+    if (!product || product.status !== 'PUBLISHED') return;
+    const slug = product.slug as LocaleMap;
+    void this.cacheService.invalidateContent([
+      `/tr/products/${slug.tr}`,
+      `/en/products/${slug.en}`,
+    ]);
   }
 
   async findAll(params: {
@@ -87,7 +107,7 @@ export class ProductsService {
     userId: string,
     ipAddress: string,
   ): Promise<Product> {
-    await this.findOne(id);
+    const existing = await this.findOne(id);
     const updated = await this.prisma.product.update({
       where: { id },
       data: {
@@ -95,6 +115,7 @@ export class ProductsService {
         ...(dto.name && { name: dto.name }),
         ...(dto.tagline !== undefined && { tagline: dto.tagline }),
         ...(dto.description !== undefined && { description: dto.description }),
+        ...(dto.features !== undefined && { features: dto.features }),
         ...(dto.status && { status: dto.status }),
         updatedById: userId,
       },
@@ -107,11 +128,23 @@ export class ProductsService {
       diff: dto,
       ipAddress,
     });
+    if (existing.status === 'PUBLISHED' || updated.status === 'PUBLISHED') {
+      const oldSlug = existing.slug as LocaleMap;
+      const newSlug = updated.slug as LocaleMap;
+      const paths = new Set([
+        ...this.listPaths(),
+        `/tr/products/${oldSlug.tr}`,
+        `/en/products/${oldSlug.en}`,
+        `/tr/products/${newSlug.tr}`,
+        `/en/products/${newSlug.en}`,
+      ]);
+      void this.cacheService.invalidateContent([...paths]);
+    }
     return updated;
   }
 
   async remove(id: string, userId: string, ipAddress: string): Promise<void> {
-    await this.findOne(id);
+    const existing = await this.findOne(id);
     await this.prisma.product.delete({ where: { id } });
     await this.auditService.log({
       userId,
@@ -120,6 +153,14 @@ export class ProductsService {
       entityId: id,
       ipAddress,
     });
+    if (existing.status === 'PUBLISHED') {
+      const slug = existing.slug as LocaleMap;
+      void this.cacheService.invalidateContent([
+        ...this.listPaths(),
+        `/tr/products/${slug.tr}`,
+        `/en/products/${slug.en}`,
+      ]);
+    }
   }
 
   async publish(
@@ -156,6 +197,7 @@ export class ProductsService {
 
     const slug = updated.slug as LocaleMap;
     void this.cacheService.invalidateContent([
+      ...this.listPaths(),
       `/tr/products/${slug.tr}`,
       `/en/products/${slug.en}`,
     ]);
@@ -206,6 +248,7 @@ export class ProductsService {
     });
     const slug = updated.slug as LocaleMap;
     void this.cacheService.invalidateContent([
+      ...this.listPaths(),
       `/tr/products/${slug.tr}`,
       `/en/products/${slug.en}`,
     ]);
@@ -241,12 +284,14 @@ export class ProductsService {
     await this.prisma.productMedia.create({
       data: { productId, mediaId, order: maxOrder + 1 },
     });
+    await this.invalidateProductDetail(productId);
   }
 
   async removeMedia(productId: string, mediaId: string): Promise<void> {
     await this.prisma.productMedia.delete({
       where: { productId_mediaId: { productId, mediaId } },
     });
+    await this.invalidateProductDetail(productId);
   }
 
   async reorderMedia(
@@ -261,6 +306,7 @@ export class ProductsService {
         }),
       ),
     );
+    await this.invalidateProductDetail(productId);
   }
 
   async findPublishedBySlug(slug: string, locale: 'tr' | 'en') {

@@ -46,6 +46,7 @@ export default function ProductsListPage() {
       <AdminLayout breadcrumb="Products">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-lg font-semibold">Products</h1>
+          <Link href="/products/create" className="bg-primary text-white px-4 py-2 text-sm font-medium hover:bg-blue-700">+ Add Product</Link>
         </div>
         <div className="bg-white border border-gray-200">
           <table className="w-full text-sm">

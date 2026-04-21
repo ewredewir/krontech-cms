@@ -6,7 +6,7 @@ import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
 import { BlogCard } from '@/components/shared/BlogCard';
-import type { BlogPost } from '@/fixtures/types';
+import type { BlogPost } from '@/types';
 import type { Locale } from '@/lib/i18n';
 
 interface BlogSwiperInnerProps {

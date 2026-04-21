@@ -14,11 +14,11 @@ export async function ContactSection({ locale, backgroundImageUrl }: ContactSect
     <section
       aria-label={t('sectionLabel')}
       className="contact-section py-[110px] relative"
-      style={{
-        backgroundImage: `url('${backgroundImageUrl ?? '/assets/images/man-with-headphones.jpg'}')`,
+      style={backgroundImageUrl ? {
+        backgroundImage: `url('${backgroundImageUrl}')`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
-      }}
+      } : undefined}
     >
       <div className="max-w-[1400px] mx-auto px-6 nav:px-10">
         <div className="grid grid-cols-1 nav:grid-cols-2 gap-12 items-start">

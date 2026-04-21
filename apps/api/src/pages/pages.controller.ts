@@ -222,11 +222,13 @@ export class PagesController {
   @SkipThrottle({ auth: true, form: true })
   @Get('public/pages/:locale/:slug')
   @ApiOperation({ summary: 'Get a published page by locale and slug' })
-  findPublished(
+  async findPublished(
     @Param('locale') locale: string,
     @Param('slug') slug: string,
+    @Query('previewToken') previewToken: string | undefined,
   ) {
     const validLocale = LocaleParamSchema.parse(locale);
-    return this.pagesService.findPublishedBySlug(slug, validLocale);
+    const result = await this.pagesService.findPublicBySlug(slug, validLocale, previewToken);
+    return result.page;
   }
 }

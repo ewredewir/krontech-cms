@@ -27,17 +27,19 @@ export default function HeroSwiperInner({ locale, slides }: HeroSwiperInnerProps
       className="h-full w-full"
     >
       {slides.map((slide, index) => (
-        <SwiperSlide key={index} className="relative h-full overflow-hidden">
-          <Image
-            src={slide.backgroundImageUrl ?? '/assets/uploads/slider/sliderbg.png'}
-            alt=""
-            fill
-            className="object-cover object-center"
-            priority={index === 0}
-            placeholder="blur"
-            blurDataURL={slide.backgroundBlurDataUrl ?? BLUR_PLACEHOLDER}
-            sizes="100vw"
-          />
+        <SwiperSlide key={index} className="relative h-full overflow-hidden bg-gray-900">
+          {slide.backgroundImageUrl && (
+            <Image
+              src={slide.backgroundImageUrl}
+              alt=""
+              fill
+              className="object-cover object-center"
+              priority={index === 0}
+              placeholder="blur"
+              blurDataURL={slide.backgroundBlurDataUrl ?? BLUR_PLACEHOLDER}
+              sizes="100vw"
+            />
+          )}
           <div className="absolute inset-0 bg-black/50" aria-hidden="true" />
           <div className="relative z-10 h-full flex items-center">
             <div className="max-w-[1400px] mx-auto w-full px-6 nav:px-10">

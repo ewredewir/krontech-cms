@@ -1,7 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import type { BlogPost } from '@/fixtures/types';
+import type { BlogPost } from '@/types';
 import type { Locale } from '@/lib/i18n';
 import { BLUR_PLACEHOLDER } from '@/lib/media';
 

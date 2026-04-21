@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { cookies, draftMode } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { setRequestLocale } from 'next-intl/server';
 import { locales } from '@/lib/i18n';
@@ -39,15 +40,16 @@ export async function generateStaticParams() {
   );
 }
 
-async function getPage(locale: Locale, slug: string): Promise<ApiPage | null> {
-  return apiFetch<ApiPage>(`/v1/public/pages/${locale}/${slug}`, {
+async function getPage(locale: Locale, slug: string, previewToken?: string): Promise<ApiPage | null> {
+  const qs = previewToken ? `?previewToken=${previewToken}` : '';
+  return apiFetch<ApiPage>(`/v1/public/pages/${locale}/${slug}${qs}`, {
     next: { revalidate: 60 },
   });
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const locale = params.locale as Locale;
-  const page = await getPage(locale, params.slug);
+  const page = await getPage(locale, params.slug, undefined);
   if (!page) return { title: 'Not Found' };
 
   const title = page.seo?.metaTitle?.[locale] ?? page.slug[locale];
@@ -77,7 +79,9 @@ export default async function DynamicPage({ params }: PageProps) {
   const locale = params.locale as Locale;
   setRequestLocale(locale);
 
-  const page = await getPage(locale, params.slug);
+  const { isEnabled } = draftMode();
+  const previewToken = isEnabled ? (cookies().get('__preview_token')?.value) : undefined;
+  const page = await getPage(locale, params.slug, previewToken);
   if (!page) notFound();
 
   const title = page.seo?.metaTitle?.[locale] ?? page.slug[locale];

@@ -156,12 +156,68 @@ export class BlogController {
     return this.blogService.getCategories();
   }
 
+  @Post('blog/categories')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiOperation({ summary: 'Create a blog category' })
+  createCategory(@Body() body: { slug: string; name: { tr: string; en: string } }) {
+    return this.blogService.createCategory(body);
+  }
+
+  @Patch('blog/categories/:id')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiOperation({ summary: 'Update a blog category' })
+  updateCategory(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: { slug?: string; name?: { tr: string; en: string } },
+  ) {
+    return this.blogService.updateCategory(id, body);
+  }
+
+  @Delete('blog/categories/:id')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Delete a blog category' })
+  async deleteCategory(@Param('id', ParseUUIDPipe) id: string) {
+    await this.blogService.deleteCategory(id);
+  }
+
   @Get('blog/tags')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @ApiOperation({ summary: 'List blog tags' })
   getTags() {
     return this.blogService.getTags();
+  }
+
+  @Post('blog/tags')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiOperation({ summary: 'Create a blog tag' })
+  createTag(@Body() body: { slug: string; name: { tr: string; en: string } }) {
+    return this.blogService.createTag(body);
+  }
+
+  @Patch('blog/tags/:id')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @ApiOperation({ summary: 'Update a blog tag' })
+  updateTag(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: { slug?: string; name?: { tr: string; en: string } },
+  ) {
+    return this.blogService.updateTag(id, body);
+  }
+
+  @Delete('blog/tags/:id')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Delete a blog tag' })
+  async deleteTag(@Param('id', ParseUUIDPipe) id: string) {
+    await this.blogService.deleteTag(id);
   }
 
   // ─── Public endpoints ────────────────────────────────────────────────────────

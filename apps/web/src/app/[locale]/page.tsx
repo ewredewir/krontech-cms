@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { unstable_noStore as noStore } from 'next/cache';
+import { cookies, draftMode } from 'next/headers';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import type { Locale } from '@/lib/i18n';
 import { apiFetch } from '@/lib/api';
@@ -29,8 +29,9 @@ interface PageProps {
   params: { locale: string };
 }
 
-async function getHomePage(locale: Locale): Promise<ApiPage | null> {
-  return apiFetch<ApiPage>(`/v1/public/pages/${locale}/${HOMEPAGE_SLUG[locale]}`, {
+async function getHomePage(locale: Locale, previewToken?: string): Promise<ApiPage | null> {
+  const qs = previewToken ? `?previewToken=${previewToken}` : '';
+  return apiFetch<ApiPage>(`/v1/public/pages/${locale}/${HOMEPAGE_SLUG[locale]}${qs}`, {
     next: { revalidate: 60 },
   });
 }
@@ -38,7 +39,7 @@ async function getHomePage(locale: Locale): Promise<ApiPage | null> {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const locale = params.locale as Locale;
   const t = await getTranslations({ locale, namespace: 'common' });
-  const page = await getHomePage(locale);
+  const page = await getHomePage(locale, undefined);
 
   const title = page?.seo?.metaTitle?.[locale]
     ?? (locale === 'tr' ? 'Siber Güvenlik Çözümleri | Krontech' : 'Cybersecurity Solutions | Krontech');
@@ -90,8 +91,9 @@ export default async function HomePage({ params }: PageProps) {
   const locale = params.locale as Locale;
   setRequestLocale(locale);
 
-  const page = await getHomePage(locale);
-  if (page === null) noStore();
+  const { isEnabled } = draftMode();
+  const previewToken = isEnabled ? (cookies().get('__preview_token')?.value) : undefined;
+  const page = await getHomePage(locale, previewToken);
 
   return (
     <>

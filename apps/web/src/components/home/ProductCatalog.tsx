@@ -8,12 +8,18 @@ import { BLUR_PLACEHOLDER } from '@/lib/media';
 
 const ProductSwiperInner = dynamic(() => import('./ProductSwiperInner'), { ssr: false });
 
+interface ApiProductFeature {
+  title: { tr: string; en: string };
+  description: { tr: string; en: string };
+}
+
 interface ApiProduct {
   id: string;
   slug: { tr: string; en: string };
   name: { tr: string; en: string };
   tagline: { tr: string; en: string } | null;
   description: { tr: string; en: string } | null;
+  features: ApiProductFeature[];
   media: Array<{ order: number; media: { publicUrl: string } }>;
 }
 
@@ -23,7 +29,7 @@ function adaptProduct(p: ApiProduct, locale: Locale): ProductCard {
     slug: p.slug[locale],
     name: p.name,
     description: p.tagline ?? p.description ?? { tr: '', en: '' },
-    bullets: [],
+    bullets: (p.features ?? []).map((f) => f.title),
     image: p.media[0]?.media.publicUrl ?? BLUR_PLACEHOLDER,
     href: '',
     faqs: [],

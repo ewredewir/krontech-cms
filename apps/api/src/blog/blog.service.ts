@@ -46,7 +46,19 @@ export class BlogService {
       diff: dto,
       ipAddress,
     });
+    if (post.status === 'PUBLISHED') {
+      const slug = post.slug as LocaleMap;
+      void this.cacheService.invalidateContent([
+        ...this.listPaths(),
+        `/tr/blog/${slug.tr}`,
+        `/en/blog/${slug.en}`,
+      ]);
+    }
     return post;
+  }
+
+  private listPaths(): string[] {
+    return ['/tr/blog', '/en/blog'];
   }
 
   async findAll(params: {
@@ -95,7 +107,7 @@ export class BlogService {
     userId: string,
     ipAddress: string,
   ): Promise<BlogPost> {
-    await this.findOne(id);
+    const existing = await this.findOne(id);
     const updated = await this.prisma.blogPost.update({
       where: { id },
       data: {
@@ -123,11 +135,25 @@ export class BlogService {
       diff: dto,
       ipAddress,
     });
+
+    if (existing.status === 'PUBLISHED' || updated.status === 'PUBLISHED') {
+      const oldSlug = existing.slug as LocaleMap;
+      const newSlug = updated.slug as LocaleMap;
+      const paths = new Set([
+        ...this.listPaths(),
+        `/tr/blog/${oldSlug.tr}`,
+        `/en/blog/${oldSlug.en}`,
+        `/tr/blog/${newSlug.tr}`,
+        `/en/blog/${newSlug.en}`,
+      ]);
+      void this.cacheService.invalidateContent([...paths]);
+    }
+
     return updated;
   }
 
   async remove(id: string, userId: string, ipAddress: string): Promise<void> {
-    await this.findOne(id);
+    const existing = await this.findOne(id);
     await this.prisma.blogPost.delete({ where: { id } });
     await this.auditService.log({
       userId,
@@ -136,6 +162,14 @@ export class BlogService {
       entityId: id,
       ipAddress,
     });
+    if (existing.status === 'PUBLISHED') {
+      const slug = existing.slug as LocaleMap;
+      void this.cacheService.invalidateContent([
+        ...this.listPaths(),
+        `/tr/blog/${slug.tr}`,
+        `/en/blog/${slug.en}`,
+      ]);
+    }
   }
 
   async publish(
@@ -172,6 +206,7 @@ export class BlogService {
 
     const slug = updated.slug as LocaleMap;
     void this.cacheService.invalidateContent([
+      ...this.listPaths(),
       `/tr/blog/${slug.tr}`,
       `/en/blog/${slug.en}`,
     ]);
@@ -221,7 +256,11 @@ export class BlogService {
       ipAddress,
     });
     const slug = updated.slug as LocaleMap;
-    void this.cacheService.invalidateContent([`/tr/blog/${slug.tr}`, `/en/blog/${slug.en}`]);
+    void this.cacheService.invalidateContent([
+      ...this.listPaths(),
+      `/tr/blog/${slug.tr}`,
+      `/en/blog/${slug.en}`,
+    ]);
     return updated;
   }
 
@@ -290,7 +329,73 @@ export class BlogService {
     return this.prisma.category.findMany({ orderBy: { name: 'asc' } });
   }
 
+  async createCategory(data: { slug: string; name: LocaleMap }) {
+    return this.prisma.category.create({ data });
+  }
+
+  async updateCategory(id: string, data: { slug?: string; name?: LocaleMap }) {
+    const updated = await this.prisma.category.update({ where: { id }, data });
+    const affected = await this.prisma.blogPost.findMany({
+      where: { categoryId: id, status: 'PUBLISHED' },
+      select: { slug: true },
+    });
+    const paths = [...this.listPaths()];
+    for (const post of affected) {
+      const slug = post.slug as LocaleMap;
+      paths.push(`/tr/blog/${slug.tr}`, `/en/blog/${slug.en}`);
+    }
+    void this.cacheService.invalidateContent(paths);
+    return updated;
+  }
+
+  async deleteCategory(id: string) {
+    const affected = await this.prisma.blogPost.findMany({
+      where: { categoryId: id, status: 'PUBLISHED' },
+      select: { slug: true },
+    });
+    await this.prisma.category.delete({ where: { id } });
+    const paths = [...this.listPaths()];
+    for (const post of affected) {
+      const slug = post.slug as LocaleMap;
+      paths.push(`/tr/blog/${slug.tr}`, `/en/blog/${slug.en}`);
+    }
+    void this.cacheService.invalidateContent(paths);
+  }
+
   async getTags() {
     return this.prisma.tag.findMany({ orderBy: { name: 'asc' } });
+  }
+
+  async createTag(data: { slug: string; name: LocaleMap }) {
+    return this.prisma.tag.create({ data });
+  }
+
+  async updateTag(id: string, data: { slug?: string; name?: LocaleMap }) {
+    const updated = await this.prisma.tag.update({ where: { id }, data });
+    const affected = await this.prisma.blogPost.findMany({
+      where: { tags: { some: { id } }, status: 'PUBLISHED' },
+      select: { slug: true },
+    });
+    const paths = [...this.listPaths()];
+    for (const post of affected) {
+      const slug = post.slug as LocaleMap;
+      paths.push(`/tr/blog/${slug.tr}`, `/en/blog/${slug.en}`);
+    }
+    void this.cacheService.invalidateContent(paths);
+    return updated;
+  }
+
+  async deleteTag(id: string) {
+    const affected = await this.prisma.blogPost.findMany({
+      where: { tags: { some: { id } }, status: 'PUBLISHED' },
+      select: { slug: true },
+    });
+    await this.prisma.tag.delete({ where: { id } });
+    const paths = [...this.listPaths()];
+    for (const post of affected) {
+      const slug = post.slug as LocaleMap;
+      paths.push(`/tr/blog/${slug.tr}`, `/en/blog/${slug.en}`);
+    }
+    void this.cacheService.invalidateContent(paths);
   }
 }

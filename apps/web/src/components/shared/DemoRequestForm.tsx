@@ -1,12 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslations } from 'next-intl';
 import type { Locale } from '@/lib/i18n';
-import { products } from '@/fixtures/products';
+
+interface ProductOption {
+  id: string;
+  slug: { tr: string; en: string };
+  name: { tr: string; en: string };
+}
 
 const schema = z.object({
   company: z.string().min(1),
@@ -29,6 +34,16 @@ export function DemoRequestForm({ locale }: DemoRequestFormProps) {
   const [success, setSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [productOptions, setProductOptions] = useState<ProductOption[]>([]);
+
+  useEffect(() => {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/v1/public/products/${locale}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data)) setProductOptions(data as ProductOption[]);
+      })
+      .catch(() => setProductOptions([]));
+  }, [locale]);
 
   const {
     register,
@@ -106,8 +121,8 @@ export function DemoRequestForm({ locale }: DemoRequestFormProps) {
           <label htmlFor="dr-product" className={labelClass}>{t('productInterest')} *</label>
           <select id="dr-product" {...register('productInterest')} className={inputClass}>
             <option value="">{t('selectProduct')}</option>
-            {products.map((p) => (
-              <option key={p.id} value={p.slug}>{p.name[locale]}</option>
+            {productOptions.map((p) => (
+              <option key={p.id} value={p.slug[locale]}>{p.name[locale]}</option>
             ))}
           </select>
           {errors.productInterest && <p className={errorClass} role="alert">{errors.productInterest.message}</p>}

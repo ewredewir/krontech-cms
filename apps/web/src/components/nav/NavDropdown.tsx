@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import type { NavDropdownItem } from '@/fixtures/types';
+import type { NavDropdownItem } from '@/types';
 
 interface NavDropdownProps {
   items: NavDropdownItem[];

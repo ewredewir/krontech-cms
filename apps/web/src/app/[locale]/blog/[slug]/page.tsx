@@ -32,6 +32,7 @@ function adaptPost(p: ApiBlogPost): BlogPost {
     slug: p.slug,
     title: p.title,
     excerpt: p.excerpt,
+    body: p.body ?? { tr: '', en: '' },
     category: p.category?.slug === 'haber' ? 'haber' : 'blog',
     image: p.featuredImage?.publicUrl ?? BLUR_PLACEHOLDER,
     publishedAt: p.publishedAt ?? new Date().toISOString(),
@@ -60,8 +61,7 @@ async function getPost(locale: Locale, slug: string): Promise<BlogPost | null> {
     { next: { revalidate: 60 } },
   );
   if (data) return adaptPost(data);
-  const fixture = fixturePosts.find((p) => p.slug[locale] === slug);
-  return fixture ?? null;
+  return null;
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -156,9 +156,9 @@ export default async function BlogDetailPage({ params }: PageProps) {
           </time>
           <h1 className="text-heading text-h1 font-semibold mt-2 mb-4">{post.title[locale]}</h1>
           <p className="text-secondary-text text-lead leading-7 mb-6">{post.excerpt[locale]}</p>
-          <p className="text-secondary-text text-body leading-7">
-            {post.excerpt[locale]}
-          </p>
+          <div className="text-secondary-text text-body leading-7 whitespace-pre-wrap">
+            {post.body[locale]}
+          </div>
           <div className="mt-8">
             <Link
               href={`/${locale}/blog`}

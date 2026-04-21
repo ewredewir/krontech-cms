@@ -16,7 +16,7 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ComponentBlockForm } from './ComponentBlockForm';
 import api from '@/lib/api';
 import { PageComponentType } from '@krontech/types';
@@ -44,11 +44,13 @@ interface PageComponent {
   type: string;
   order: number;
   data: Record<string, unknown>;
+  hasDraft: boolean;
 }
 
 interface PageComponentEditorProps {
   pageId: string;
   initialComponents: PageComponent[];
+  onDraftStateChange: (hasPending: boolean) => void;
 }
 
 function SortableComponentRow({
@@ -85,6 +87,12 @@ function SortableComponentRow({
          (component.data.content as { tr?: string } | undefined)?.tr?.slice(0, 60) ??
          `Component #${component.order + 1}`}
       </span>
+      {component.hasDraft && (
+        <span
+          title="Unsaved draft"
+          className="inline-block w-2 h-2 rounded-full bg-amber-400 flex-shrink-0"
+        />
+      )}
       <button
         type="button"
         onClick={onEdit}
@@ -103,13 +111,17 @@ function SortableComponentRow({
   );
 }
 
-export function PageComponentEditor({ pageId, initialComponents }: PageComponentEditorProps) {
+export function PageComponentEditor({ pageId, initialComponents, onDraftStateChange }: PageComponentEditorProps) {
   const [components, setComponents] = useState<PageComponent[]>(
     [...initialComponents].sort((a, b) => a.order - b.order)
   );
   const [editingId, setEditingId] = useState<string | null>(null);
   const [addingType, setAddingType] = useState<string | null>(null);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    onDraftStateChange(components.some(c => c.hasDraft));
+  }, [components]);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -137,11 +149,11 @@ export function PageComponentEditor({ pageId, initialComponents }: PageComponent
 
   const handleSaveComponent = async (id: string, data: Record<string, unknown>) => {
     try {
-      await api.patch(`/pages/components/${id}`, { data });
-      setComponents(prev => prev.map(c => c.id === id ? { ...c, data } : c));
+      const res = await api.patch<PageComponent>(`/pages/components/${id}`, { data });
+      setComponents(prev => prev.map(c => c.id === id ? { ...res.data } : c));
       setEditingId(null);
     } catch {
-      setError('Failed to save component');
+      setError('Failed to save draft');
     }
   };
 
@@ -223,6 +235,7 @@ export function PageComponentEditor({ pageId, initialComponents }: PageComponent
                       initialData={component.data}
                       onSave={(data) => handleSaveComponent(component.id, data)}
                       onCancel={() => setEditingId(null)}
+                      saveLabel="Save Draft"
                     />
                   </div>
                 )}

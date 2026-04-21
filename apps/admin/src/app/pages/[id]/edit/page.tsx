@@ -19,6 +19,7 @@ interface PageData {
     type: string;
     order: number;
     data: Record<string, unknown>;
+    hasDraft: boolean;
   }>;
 }
 
@@ -32,6 +33,7 @@ export default function EditPagePage({ params }: EditPageProps) {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [locale, setLocale] = useState<'tr' | 'en'>('tr');
+  const [hasPendingDrafts, setHasPendingDrafts] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -122,7 +124,11 @@ export default function EditPagePage({ params }: EditPageProps) {
 
             {/* Component editor */}
             <section className="bg-white border border-gray-200 p-6">
-              <PageComponentEditor pageId={page.id} initialComponents={page.components ?? []} />
+              <PageComponentEditor
+                pageId={page.id}
+                initialComponents={page.components ?? []}
+                onDraftStateChange={setHasPendingDrafts}
+              />
             </section>
 
             {/* SEO panel */}
@@ -141,6 +147,7 @@ export default function EditPagePage({ params }: EditPageProps) {
               entityId={page.id}
               currentStatus={page.status}
               scheduledAt={page.scheduledAt}
+              hasPendingDrafts={hasPendingDrafts}
               onStatusChange={() => { void load(); }}
             />
           </div>

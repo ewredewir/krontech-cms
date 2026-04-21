@@ -1,4 +1,4 @@
-import { createHmac } from 'crypto';
+import { createHmac, timingSafeEqual } from 'crypto';
 import {
   BadRequestException,
   Injectable,
@@ -19,6 +19,14 @@ import {
 
 type LocaleMap = { tr: string; en: string };
 type PageWithRelations = Page & { components: PageComponent[]; seo: Prisma.SeoMetaGetPayload<object> | null };
+
+// Admin-safe component shape: hasDraft instead of raw draftData
+type AdminComponent = Omit<PageComponent, 'draftData'> & { hasDraft: boolean };
+
+function toAdminComponent(comp: PageComponent): AdminComponent {
+  const { draftData, ...rest } = comp;
+  return { ...rest, hasDraft: draftData !== null };
+}
 
 @Injectable()
 export class PagesService {
@@ -47,6 +55,9 @@ export class PagesService {
       diff: dto,
       ipAddress,
     });
+    if (page.status === 'PUBLISHED') {
+      void this.cacheService.invalidateContent(this.pagePathsForSlug(page.slug as LocaleMap));
+    }
     return page;
   }
 
@@ -54,7 +65,7 @@ export class PagesService {
     page: number;
     limit: number;
     status?: string;
-  }): Promise<{ data: Page[]; total: number }> {
+  }): Promise<{ data: (Omit<Page, never> & { components: AdminComponent[]; seo: Prisma.SeoMetaGetPayload<object> | null })[]; total: number }> {
     const where = params.status ? { status: params.status as Prisma.EnumContentStatusFilter } : {};
     const [data, total] = await Promise.all([
       this.prisma.page.findMany({
@@ -66,16 +77,19 @@ export class PagesService {
       }),
       this.prisma.page.count({ where }),
     ]);
-    return { data, total };
+    return {
+      data: data.map(p => ({ ...p, components: p.components.map(toAdminComponent) })),
+      total,
+    };
   }
 
-  async findOne(id: string): Promise<PageWithRelations> {
+  async findOne(id: string): Promise<Omit<PageWithRelations, 'components'> & { components: AdminComponent[] }> {
     const page = await this.prisma.page.findUnique({
       where: { id },
       include: { seo: true, components: { orderBy: { order: 'asc' } } },
     });
     if (!page) throw new NotFoundException('Page not found');
-    return page;
+    return { ...page, components: page.components.map(toAdminComponent) };
   }
 
   async update(
@@ -104,21 +118,20 @@ export class PagesService {
       diff: dto,
       ipAddress,
     });
-    if (dto.slug) {
+    if (existing.status === 'PUBLISHED' || updated.status === 'PUBLISHED') {
       const oldSlug = existing.slug as LocaleMap;
       const newSlug = updated.slug as LocaleMap;
-      void this.cacheService.invalidateContent([
-        `/tr/${oldSlug.tr}`,
-        `/en/${oldSlug.en}`,
-        `/tr/${newSlug.tr}`,
-        `/en/${newSlug.en}`,
+      const paths = new Set([
+        ...this.pagePathsForSlug(oldSlug),
+        ...this.pagePathsForSlug(newSlug),
       ]);
+      void this.cacheService.invalidateContent([...paths]);
     }
     return updated;
   }
 
   async remove(id: string, userId: string, ipAddress: string): Promise<void> {
-    await this.findOne(id);
+    const existing = await this.findOne(id);
     await this.prisma.page.delete({ where: { id } });
     await this.auditService.log({
       userId,
@@ -127,6 +140,11 @@ export class PagesService {
       entityId: id,
       ipAddress,
     });
+    if (existing.status === 'PUBLISHED') {
+      void this.cacheService.invalidateContent(
+        this.pagePathsForSlug(existing.slug as LocaleMap),
+      );
+    }
   }
 
   async publish(
@@ -140,9 +158,16 @@ export class PagesService {
       include: { components: true, seo: true },
     });
 
+    // Gap 1: allow re-publishing a PUBLISHED page only when pending drafts exist
     if (page.status === 'PUBLISHED') {
-      throw new BadRequestException('Page is already published');
+      const pendingCount = await this.prisma.pageComponent.count({
+        where: { pageId: id, draftData: { not: Prisma.AnyNull } },
+      });
+      if (pendingCount === 0) {
+        throw new BadRequestException('No pending changes to publish');
+      }
     }
+
     if (page.status === 'DRAFT' && mode === 'CRON') {
       throw new BadRequestException('Cannot cron-publish a draft page');
     }
@@ -153,14 +178,30 @@ export class PagesService {
       include: { components: true, seo: true },
     });
 
-    await this.createVersion(updated, userId);
+    // Promote all pending component drafts atomically
+    await this.prisma.$executeRaw`
+      UPDATE "PageComponent"
+      SET    data = "draftData", "draftData" = NULL
+      WHERE  "pageId" = ${id}
+      AND    "draftData" IS NOT NULL
+    `;
+
+    // Refetch to get post-promotion component data for the version snapshot
+    const refreshed = await this.prisma.page.findUniqueOrThrow({
+      where: { id },
+      include: { components: true, seo: true },
+    });
+
+    await this.createVersion(refreshed, userId);
 
     const action =
-      page.status === 'SCHEDULED'
-        ? mode === 'CRON'
-          ? 'SCHEDULED_PUBLISH_CRON'
-          : 'SCHEDULED_PUBLISH_MANUAL'
-        : 'PAGE_PUBLISHED';
+      page.status === 'PUBLISHED'
+        ? 'PAGE_CHANGES_PUBLISHED'
+        : page.status === 'SCHEDULED'
+          ? mode === 'CRON'
+            ? 'SCHEDULED_PUBLISH_CRON'
+            : 'SCHEDULED_PUBLISH_MANUAL'
+          : 'PAGE_PUBLISHED';
 
     await this.auditService.log({
       userId,
@@ -171,7 +212,7 @@ export class PagesService {
     });
 
     const slug = updated.slug as LocaleMap;
-    void this.cacheService.invalidateContent([`/tr/${slug.tr}`, `/en/${slug.en}`]);
+    void this.cacheService.invalidateContent(this.pagePathsForSlug(slug));
 
     return updated;
   }
@@ -218,7 +259,7 @@ export class PagesService {
       ipAddress,
     });
     const slug = updated.slug as LocaleMap;
-    void this.cacheService.invalidateContent([`/tr/${slug.tr}`, `/en/${slug.en}`]);
+    void this.cacheService.invalidateContent(this.pagePathsForSlug(slug));
     return updated;
   }
 
@@ -251,7 +292,7 @@ export class PagesService {
       .digest('hex');
     const token = Buffer.from(`${payload}:${sig}`).toString('base64url');
     const base = process.env.WEB_PUBLIC_URL ?? '';
-    return { url: `${base}/api/preview?token=${token}` };
+    return { url: `${base}/api/preview?token=${token}&locale=tr` };
   }
 
   async getVersions(pageId: string) {
@@ -263,8 +304,8 @@ export class PagesService {
   }
 
   // Components
-  async addComponent(dto: CreatePageComponentDto): Promise<PageComponent> {
-    return this.prisma.pageComponent.create({
+  async addComponent(dto: CreatePageComponentDto): Promise<AdminComponent> {
+    const comp = await this.prisma.pageComponent.create({
       data: {
         pageId: dto.pageId,
         type: dto.type,
@@ -273,22 +314,23 @@ export class PagesService {
         isVisible: dto.isVisible ?? true,
       },
     });
+    return toAdminComponent(comp);
   }
 
   async updateComponent(
     id: string,
     dto: UpdatePageComponentDto,
-  ): Promise<PageComponent> {
+  ): Promise<AdminComponent> {
     const updated = await this.prisma.pageComponent.update({
       where: { id },
       data: {
         ...(dto.order !== undefined && { order: dto.order }),
-        ...(dto.data !== undefined && { data: dto.data as Prisma.InputJsonValue }),
+        ...(dto.data !== undefined && { draftData: dto.data as Prisma.InputJsonValue }),
         ...(dto.isVisible !== undefined && { isVisible: dto.isVisible }),
       },
     });
-    void this.invalidateComponentPage(updated.pageId);
-    return updated;
+    // No cache invalidation — draftData change does not affect the live page
+    return toAdminComponent(updated);
   }
 
   async removeComponent(id: string): Promise<void> {
@@ -307,7 +349,6 @@ export class PagesService {
         }),
       ),
     );
-    // Derive pageId from first component and invalidate
     const first = await this.prisma.pageComponent.findUnique({
       where: { id: dto.components[0]!.id },
       select: { pageId: true },
@@ -318,19 +359,70 @@ export class PagesService {
   private async invalidateComponentPage(pageId: string): Promise<void> {
     const page = await this.prisma.page.findUnique({ where: { id: pageId }, select: { slug: true } });
     if (!page) return;
-    const slug = page.slug as LocaleMap;
+    void this.cacheService.invalidateContent(this.pagePathsForSlug(page.slug as LocaleMap));
+  }
+
+  private pagePathsForSlug(slug: LocaleMap): string[] {
     const paths = [`/tr/${slug.tr}`, `/en/${slug.en}`];
-    // The homepage slugs resolve to /tr and /en, not /tr/anasayfa.
     if (slug.tr === 'anasayfa' || slug.en === 'home') {
       paths.push('/tr', '/en');
     }
-    void this.cacheService.invalidateContent(paths);
+    return paths;
   }
 
   // Public endpoints
-  async findPublishedBySlug(slug: string, locale: 'tr' | 'en') {
+  async findPublicBySlug(slug: string, locale: 'tr' | 'en', previewToken?: string) {
+    let isPreview = false;
+    let previewPageId: string | undefined;
+
+    if (previewToken) {
+      let decoded: string;
+      try {
+        decoded = Buffer.from(previewToken, 'base64url').toString('utf8');
+      } catch {
+        throw new BadRequestException('Malformed preview token');
+      }
+
+      const lastColon = decoded.lastIndexOf(':');
+      if (lastColon === -1) throw new BadRequestException('Invalid preview token');
+
+      const payload = decoded.slice(0, lastColon);
+      const receivedSig = decoded.slice(lastColon + 1);
+      const parts = payload.split(':');
+      if (parts.length !== 4) throw new BadRequestException('Invalid preview token');
+
+      const [pageId, , , expiryStr] = parts;
+      const expiry = Number(expiryStr);
+
+      if (!Number.isFinite(expiry) || Date.now() > expiry) {
+        throw new BadRequestException('Preview token expired');
+      }
+
+      const secret = process.env.REVALIDATE_SECRET ?? '';
+      const expectedSig = createHmac('sha256', secret).update(payload).digest('hex');
+
+      try {
+        const a = Buffer.from(receivedSig, 'hex');
+        const b = Buffer.from(expectedSig, 'hex');
+        if (a.length !== b.length || !timingSafeEqual(a, b)) {
+          throw new BadRequestException('Invalid preview token signature');
+        }
+      } catch (e) {
+        if (e instanceof BadRequestException) throw e;
+        throw new BadRequestException('Invalid preview token signature');
+      }
+
+      isPreview = true;
+      previewPageId = pageId;
+    }
+
+    // Build status filter: preview bypasses it; normal requests include SCHEDULED (Gap 3 Change A)
+    const statusFilter = isPreview
+      ? undefined
+      : ({ in: ['PUBLISHED', 'SCHEDULED'] } as Prisma.EnumContentStatusFilter);
+
     const pages = await this.prisma.page.findMany({
-      where: { status: 'PUBLISHED' },
+      where: { ...(statusFilter && { status: statusFilter }) },
       include: { components: { orderBy: { order: 'asc' } }, seo: { include: { ogImage: true } } },
     });
 
@@ -341,7 +433,12 @@ export class PagesService {
 
     if (!page) throw new NotFoundException('Page not found');
 
-    // Resolve *MediaId UUIDs → { publicUrl, blurDataUrl } inline in component data.
+    // Verify the preview token was issued for this specific page
+    if (isPreview && previewPageId && page.id !== previewPageId) {
+      throw new BadRequestException('Preview token does not match this page');
+    }
+
+    // Resolve *MediaId UUIDs → { publicUrl, blurDataUrl } inline in component data
     const mediaIdFields = ['backgroundMediaId', 'badgeMediaId', 'thumbnailMediaId'] as const;
     const mediaIds = new Set<string>();
     for (const comp of page.components) {
@@ -349,7 +446,6 @@ export class PagesService {
       for (const field of mediaIdFields) {
         if (typeof d[field] === 'string') mediaIds.add(d[field] as string);
       }
-      // hero_slider: each slide may carry backgroundMediaId
       if (Array.isArray(d['slides'])) {
         for (const slide of d['slides'] as Array<Record<string, unknown>>) {
           if (typeof slide['backgroundMediaId'] === 'string') mediaIds.add(slide['backgroundMediaId'] as string);
@@ -367,36 +463,45 @@ export class PagesService {
     }
 
     const resolvedComponents = page.components.map((comp) => {
-      if (mediaMap.size === 0) return comp;
-      const d = { ...(comp.data as Record<string, unknown>) };
-      for (const field of mediaIdFields) {
-        if (typeof d[field] === 'string') {
-          const m = mediaMap.get(d[field] as string);
-          if (m) {
-            const urlKey = field.replace('MediaId', 'ImageUrl') as string;
-            const blurKey = field.replace('MediaId', 'BlurDataUrl') as string;
-            d[urlKey] = m.publicUrl;
-            d[blurKey] = m.blurDataUrl;
-          }
-        }
-      }
-      if (Array.isArray(d['slides'])) {
-        d['slides'] = (d['slides'] as Array<Record<string, unknown>>).map((slide) => {
-          const s = { ...slide };
-          if (typeof s['backgroundMediaId'] === 'string') {
-            const m = mediaMap.get(s['backgroundMediaId'] as string);
+      // In preview mode, overlay draftData over live data
+      const rawData = isPreview
+        ? ((comp.draftData ?? comp.data) as Record<string, unknown>)
+        : (comp.data as Record<string, unknown>);
+
+      const d = mediaMap.size === 0 ? { ...rawData } : { ...rawData };
+
+      if (mediaMap.size > 0) {
+        for (const field of mediaIdFields) {
+          if (typeof d[field] === 'string') {
+            const m = mediaMap.get(d[field] as string);
             if (m) {
-              s['backgroundImageUrl'] = m.publicUrl;
-              s['backgroundBlurDataUrl'] = m.blurDataUrl;
+              const urlKey = field.replace('MediaId', 'ImageUrl') as string;
+              const blurKey = field.replace('MediaId', 'BlurDataUrl') as string;
+              d[urlKey] = m.publicUrl;
+              d[blurKey] = m.blurDataUrl;
             }
           }
-          return s;
-        });
+        }
+        if (Array.isArray(d['slides'])) {
+          d['slides'] = (d['slides'] as Array<Record<string, unknown>>).map((slide) => {
+            const s = { ...slide };
+            if (typeof s['backgroundMediaId'] === 'string') {
+              const m = mediaMap.get(s['backgroundMediaId'] as string);
+              if (m) {
+                s['backgroundImageUrl'] = m.publicUrl;
+                s['backgroundBlurDataUrl'] = m.blurDataUrl;
+              }
+            }
+            return s;
+          });
+        }
       }
-      return { ...comp, data: d };
+
+      const { draftData: _draftData, ...compRest } = comp;
+      return { ...compRest, data: d };
     });
 
-    return { ...page, components: resolvedComponents };
+    return { isPreview, page: { ...page, components: resolvedComponents } };
   }
 
   async getAllSlugs(): Promise<Array<{ slug: LocaleMap }>> {

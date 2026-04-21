@@ -31,18 +31,20 @@ export async function KuppingerColeSection({ locale, heading, linkHref, badgeIma
               {t('cta')}
             </Link>
           </div>
-          <div className="flex justify-center">
-            <Image
-              src={badgeImageUrl ?? '/assets/uploads/content/homepage_kuppingercole.png'}
-              alt="KuppingerCole Leadership Compass PAM Overall Leader"
-              width={500}
-              height={400}
-              className="object-contain max-w-full"
-              placeholder="blur"
-              blurDataURL={BLUR_PLACEHOLDER}
-              sizes="(max-width: 1100px) 100vw, 50vw"
-            />
-          </div>
+          {badgeImageUrl && (
+            <div className="flex justify-center">
+              <Image
+                src={badgeImageUrl}
+                alt="KuppingerCole Leadership Compass PAM Overall Leader"
+                width={500}
+                height={400}
+                className="object-contain max-w-full"
+                placeholder="blur"
+                blurDataURL={BLUR_PLACEHOLDER}
+                sizes="(max-width: 1100px) 100vw, 50vw"
+              />
+            </div>
+          )}
         </div>
       </div>
     </section>

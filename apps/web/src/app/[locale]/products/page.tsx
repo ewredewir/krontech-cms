@@ -3,7 +3,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import type { Locale } from '@/lib/i18n';
-import { products as fixtureProducts } from '@/fixtures/products';
 import type { ProductCard } from '@/fixtures/types';
 import { apiFetch } from '@/lib/api';
 import { PageBanner } from '@/components/shared/PageBanner';
@@ -12,12 +11,18 @@ import { BLUR_PLACEHOLDER } from '@/lib/media';
 
 export const revalidate = 60;
 
+interface ApiProductFeature {
+  title: { tr: string; en: string };
+  description: { tr: string; en: string };
+}
+
 interface ApiProduct {
   id: string;
   slug: { tr: string; en: string };
   name: { tr: string; en: string };
   tagline: { tr: string; en: string } | null;
   description: { tr: string; en: string } | null;
+  features: ApiProductFeature[];
   media: Array<{ order: number; media: { publicUrl: string; altText: { tr: string; en: string } | null; blurDataUrl: string | null } }>;
 }
 
@@ -27,7 +32,7 @@ function adaptProduct(p: ApiProduct, locale: Locale): ProductCard {
     slug: p.slug[locale],
     name: p.name,
     description: p.tagline ?? p.description ?? { tr: '', en: '' },
-    bullets: [],
+    bullets: (p.features ?? []).map((f) => f.title),
     image: p.media[0]?.media.publicUrl ?? BLUR_PLACEHOLDER,
     href: '',
     faqs: [],
@@ -62,9 +67,7 @@ export default async function ProductsPage({ params }: PageProps) {
     { next: { revalidate: 60 } },
   );
   const products: ProductCard[] =
-    Array.isArray(apiProducts) && apiProducts.length > 0
-      ? apiProducts.map((p) => adaptProduct(p, locale))
-      : fixtureProducts;
+    Array.isArray(apiProducts) ? apiProducts.map((p) => adaptProduct(p, locale)) : [];
 
   return (
     <>

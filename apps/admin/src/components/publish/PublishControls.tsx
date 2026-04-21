@@ -7,6 +7,7 @@ interface PublishControlsProps {
   entityId: string;
   currentStatus: 'DRAFT' | 'PUBLISHED' | 'SCHEDULED';
   scheduledAt?: string;
+  hasPendingDrafts?: boolean;
   onStatusChange: () => void;
 }
 
@@ -34,6 +35,7 @@ export function PublishControls({
   entityId,
   currentStatus,
   scheduledAt,
+  hasPendingDrafts = false,
   onStatusChange,
 }: PublishControlsProps) {
   const [loading, setLoading] = useState(false);
@@ -49,8 +51,9 @@ export function PublishControls({
     try {
       await action();
       onStatusChange();
-    } catch {
-      setError('Action failed — please try again');
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setError(msg ?? 'Action failed — please try again');
     } finally {
       setLoading(false);
     }
@@ -104,6 +107,18 @@ export function PublishControls({
             className="w-full bg-green-600 text-white py-1.5 text-sm font-medium hover:bg-green-700 disabled:opacity-50"
           >
             Publish Now
+          </button>
+        )}
+
+        {/* Publish Changes — PUBLISHED with pending drafts only */}
+        {currentStatus === 'PUBLISHED' && hasPendingDrafts && (
+          <button
+            type="button"
+            onClick={() => { void handlePublish(); }}
+            disabled={loading}
+            className="w-full bg-green-600 text-white py-1.5 text-sm font-medium hover:bg-green-700 disabled:opacity-50"
+          >
+            Publish Changes
           </button>
         )}
 

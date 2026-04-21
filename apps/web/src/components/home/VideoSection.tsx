@@ -41,17 +41,19 @@ export function VideoSection({ locale: _locale, videoId, thumbnailUrl }: VideoSe
                 aria-label={t('playLabel')}
                 className="relative w-full group"
               >
-                <Image
-                  src={thumbnailUrl ?? '/assets/uploads/content/kron-anadolu-efes.jpg'}
-                  alt={t('title')}
-                  width={735}
-                  height={500}
-                  className="w-full object-cover"
-                  placeholder="blur"
-                  blurDataURL={BLUR_PLACEHOLDER}
-                  sizes="(max-width: 1100px) 100vw, 50vw"
-                />
-                <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/30 transition-colors">
+                {thumbnailUrl && (
+                  <Image
+                    src={thumbnailUrl}
+                    alt={t('title')}
+                    width={735}
+                    height={500}
+                    className="w-full object-cover"
+                    placeholder="blur"
+                    blurDataURL={BLUR_PLACEHOLDER}
+                    sizes="(max-width: 1100px) 100vw, 50vw"
+                  />
+                )}
+                <div className={`${thumbnailUrl ? 'absolute inset-0' : 'aspect-video'} flex items-center justify-center bg-black/20 group-hover:bg-black/30 transition-colors`}>
                   <div className="w-16 h-16 bg-primary flex items-center justify-center shadow-lg group-hover:bg-primary-light transition-colors">
                     <Image
                       src="/assets/images/play.svg"

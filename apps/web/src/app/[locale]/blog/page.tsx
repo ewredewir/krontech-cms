@@ -27,6 +27,7 @@ function adaptPost(p: ApiBlogPost): BlogPost {
     slug: p.slug,
     title: p.title,
     excerpt: p.excerpt,
+    body: { tr: '', en: '' },
     category: p.category?.slug === 'haber' ? 'haber' : 'blog',
     image: p.featuredImage?.publicUrl ?? BLUR_PLACEHOLDER,
     publishedAt: p.publishedAt ?? new Date().toISOString(),

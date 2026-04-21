@@ -15,12 +15,18 @@ import { BLUR_PLACEHOLDER } from '@/lib/media';
 
 export const revalidate = 60;
 
+interface ApiProductFeature {
+  title: { tr: string; en: string };
+  description: { tr: string; en: string };
+}
+
 interface ApiProduct {
   id: string;
   slug: { tr: string; en: string };
   name: { tr: string; en: string };
   tagline: { tr: string; en: string } | null;
   description: { tr: string; en: string } | null;
+  features: ApiProductFeature[];
   media: Array<{ order: number; media: { publicUrl: string; altText: { tr: string; en: string } | null; blurDataUrl: string | null } }>;
 }
 
@@ -29,8 +35,8 @@ function adaptProduct(p: ApiProduct, locale: Locale): ProductCard {
     id: p.id,
     slug: p.slug[locale],
     name: p.name,
-    description: p.tagline ?? p.description ?? { tr: '', en: '' },
-    bullets: [],
+    description: p.description ?? p.tagline ?? { tr: '', en: '' },
+    bullets: (p.features ?? []).map((f) => f.title),
     image: p.media[0]?.media.publicUrl ?? BLUR_PLACEHOLDER,
     href: '',
     faqs: [],
@@ -59,7 +65,7 @@ async function getProduct(locale: Locale, slug: string): Promise<ProductCard | n
     { next: { revalidate: 60 } },
   );
   if (data) return adaptProduct(data, locale);
-  return fixtureProducts.find((p) => p.slug === slug) ?? null;
+  return null;
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {

@@ -7,7 +7,7 @@ import Link from 'next/link';
 import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
-import type { ProductCard } from '@/fixtures/types';
+import type { ProductCard } from '@/types';
 import type { Locale } from '@/lib/i18n';
 import { BLUR_PLACEHOLDER } from '@/lib/media';
 import { useTranslations } from 'next-intl';

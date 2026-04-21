@@ -11,6 +11,7 @@ const S3_BUCKET    = process.env.S3_BUCKET    ?? 'krontech-media';
 const S3_ACCESS_KEY = process.env.S3_ACCESS_KEY ?? '';
 const S3_SECRET_KEY = process.env.S3_SECRET_KEY ?? '';
 const PRODUCT_IMAGES_DIR = path.resolve(__dirname, '..', 'assets', 'products');
+const BLOG_IMAGES_DIR = path.resolve(__dirname, '..', '..', '..', 'apps', 'web', 'public', 'assets', 'uploads', 'content');
 
 const s3 = new S3Client({
   endpoint: S3_ENDPOINT,
@@ -23,10 +24,8 @@ const s3 = new S3Client({
 const IDS = {
   seo: {
     homepage:  '20000000-0000-0000-0000-000000000001',
-    about:     '20000000-0000-0000-0000-000000000002',
     contact:   '20000000-0000-0000-0000-000000000003',
     demo:      '20000000-0000-0000-0000-000000000004',
-    resources: '20000000-0000-0000-0000-000000000005',
     post1:     '20000000-0000-0000-0000-000000000011',
     post2:     '20000000-0000-0000-0000-000000000012',
     post3:     '20000000-0000-0000-0000-000000000013',
@@ -41,10 +40,8 @@ const IDS = {
   },
   page: {
     homepage:  '10000000-0000-0000-0000-000000000001',
-    about:     '10000000-0000-0000-0000-000000000002',
     contact:   '10000000-0000-0000-0000-000000000003',
     demo:      '10000000-0000-0000-0000-000000000004',
-    resources: '10000000-0000-0000-0000-000000000005',
   },
   component: {
     // Legacy homepage placeholder IDs — upserts removed but IDs kept for reference
@@ -60,16 +57,10 @@ const IDS = {
     homepage_video:        'c0000000-0000-0000-0000-000000000056',
     homepage_blog:         'c0000000-0000-0000-0000-000000000057',
     homepage_contact:      'c0000000-0000-0000-0000-000000000058',
-    about_hero:         'c0000000-0000-0000-0000-000000000011',
-    about_features:     'c0000000-0000-0000-0000-000000000012',
-    about_cta:          'c0000000-0000-0000-0000-000000000013',
     contact_hero:       'c0000000-0000-0000-0000-000000000021',
     contact_form:       'c0000000-0000-0000-0000-000000000022',
     demo_hero:          'c0000000-0000-0000-0000-000000000031',
     demo_form:          'c0000000-0000-0000-0000-000000000032',
-    resources_hero:     'c0000000-0000-0000-0000-000000000041',
-    resources_features: 'c0000000-0000-0000-0000-000000000042',
-    resources_cta:      'c0000000-0000-0000-0000-000000000043',
   },
   form: {
     contact: '50000000-0000-0000-0000-000000000001',
@@ -90,6 +81,11 @@ const IDS = {
     qa:   '60000000-0000-0000-0000-000000000004',
     aaa:  '60000000-0000-0000-0000-000000000005',
     tlmp: '60000000-0000-0000-0000-000000000006',
+    blog_post1: '60000000-0000-0000-0000-000000000011',
+    blog_post2: '60000000-0000-0000-0000-000000000012',
+    blog_post3: '60000000-0000-0000-0000-000000000013',
+    blog_post4: '60000000-0000-0000-0000-000000000014',
+    blog_post5: '60000000-0000-0000-0000-000000000015',
   },
   post: {
     p1: '30000000-0000-0000-0000-000000000001',
@@ -103,7 +99,6 @@ const IDS = {
     tr_products:  'a0000000-0000-0000-0000-000000000001',
     tr_resources: 'a0000000-0000-0000-0000-000000000008',
     tr_blog:      'a0000000-0000-0000-0000-000000000009',
-    tr_about:     'a0000000-0000-0000-0000-000000000010',
     tr_contact:   'a0000000-0000-0000-0000-000000000011',
     tr_demo:      'a0000000-0000-0000-0000-000000000012',
     // Turkish children (Products dropdown)
@@ -117,7 +112,6 @@ const IDS = {
     en_products:  'a0000000-0000-0000-0000-000000000021',
     en_resources: 'a0000000-0000-0000-0000-000000000028',
     en_blog:      'a0000000-0000-0000-0000-000000000029',
-    en_about:     'a0000000-0000-0000-0000-000000000030',
     en_contact:   'a0000000-0000-0000-0000-000000000031',
     en_demo:      'a0000000-0000-0000-0000-000000000032',
     // English children (Products dropdown)
@@ -186,6 +180,54 @@ const PRODUCT_MEDIA_MANIFEST: Array<[string, string, string]> = [
   [IDS.product.tlmp, IDS.media.tlmp, 'tlmp.png'],
 ];
 
+const BLOG_MEDIA_MANIFEST: Array<[string, string, string]> = [
+  [IDS.post.p1, IDS.media.blog_post1, '7-basic-steps-to-identify-a-data-breach-blog-730x411_3.jpg'],
+  [IDS.post.p2, IDS.media.blog_post2, 'oracle-rac-simplified-how-kron-damddm-secures-multi-node-databases.png'],
+  [IDS.post.p3, IDS.media.blog_post3, 'turning-firewall-logs-into-ipdr-with-kron-telemetry-pipeline.jpg'],
+  [IDS.post.p4, IDS.media.blog_post4, 'unifying-kubernetes-telemetry-in-a-diverse-and-fragmented-collector-world_blog.png'],
+  [IDS.post.p5, IDS.media.blog_post5, 'your-biggest-security-risk-isn-t-human-fixing-non-human-identities-with-kron-pam_blog.png'],
+];
+
+async function upsertBlogMedia(
+  mediaId: string,
+  filename: string,
+  uploadedById: string,
+): Promise<void> {
+  const filePath = path.join(BLOG_IMAGES_DIR, filename);
+  if (!fs.existsSync(filePath)) {
+    console.warn(`  ⚠ Blog image not found: ${filePath} — skipping`);
+    return;
+  }
+  const fileBuffer = fs.readFileSync(filePath);
+  const ext = path.extname(filename).toLowerCase();
+  const mimeType = ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' : 'image/png';
+  const s3Key = `uploads/content/${filename}`;
+
+  await s3.send(new PutObjectCommand({
+    Bucket: S3_BUCKET,
+    Key: s3Key,
+    Body: fileBuffer,
+    ContentType: mimeType,
+  }));
+
+  const publicUrl = `${S3_ENDPOINT}/${S3_BUCKET}/${s3Key}`;
+
+  await prisma.media.upsert({
+    where: { id: mediaId },
+    update: { publicUrl },
+    create: {
+      id: mediaId,
+      filename,
+      mimeType,
+      size: fileBuffer.length,
+      s3Key,
+      publicUrl,
+      altText: { tr: filename, en: filename },
+      uploadedById,
+    },
+  });
+}
+
 async function main() {
   const adminExists = await prisma.user.findFirst({ where: { role: UserRole.ADMIN } });
   const navCount = await prisma.navigationItem.count();
@@ -240,17 +282,6 @@ async function main() {
   });
 
   await prisma.seoMeta.upsert({
-    where: { id: IDS.seo.about },
-    update: { metaTitle: { tr: 'Hakkımızda | Krontech', en: 'About Us | Krontech' } },
-    create: {
-      id: IDS.seo.about,
-      metaTitle: { tr: 'Hakkımızda | Krontech', en: 'About Us | Krontech' },
-      metaDescription: { tr: 'Krontech hakkında — misyon, vizyon ve değerlerimiz.', en: 'About Krontech — our mission, vision, and values.' },
-      robots: 'index, follow',
-    },
-  });
-
-  await prisma.seoMeta.upsert({
     where: { id: IDS.seo.contact },
     update: { metaTitle: { tr: 'İletişim | Krontech', en: 'Contact | Krontech' } },
     create: {
@@ -272,17 +303,6 @@ async function main() {
     },
   });
 
-  await prisma.seoMeta.upsert({
-    where: { id: IDS.seo.resources },
-    update: { metaTitle: { tr: 'Kaynaklar | Krontech', en: 'Resources | Krontech' } },
-    create: {
-      id: IDS.seo.resources,
-      metaTitle: { tr: 'Kaynaklar | Krontech', en: 'Resources | Krontech' },
-      metaDescription: { tr: 'Krontech kaynakları, teknik belgeler ve vaka çalışmaları.', en: 'Krontech resources, technical documents and case studies.' },
-      robots: 'index, follow',
-    },
-  });
-
   // ─── Pages ───────────────────────────────────────────────────────────────────
 
   await prisma.page.upsert({
@@ -294,20 +314,6 @@ async function main() {
       status: ContentStatus.PUBLISHED,
       publishedAt: new Date(),
       seoMetaId: IDS.seo.homepage,
-      createdById: admin.id,
-      updatedById: admin.id,
-    },
-  });
-
-  await prisma.page.upsert({
-    where: { id: IDS.page.about },
-    update: { slug: { tr: 'hakkimizda', en: 'about-us' } },
-    create: {
-      id: IDS.page.about,
-      slug: { tr: 'hakkimizda', en: 'about-us' },
-      status: ContentStatus.PUBLISHED,
-      publishedAt: new Date(),
-      seoMetaId: IDS.seo.about,
       createdById: admin.id,
       updatedById: admin.id,
     },
@@ -336,20 +342,6 @@ async function main() {
       status: ContentStatus.PUBLISHED,
       publishedAt: new Date(),
       seoMetaId: IDS.seo.demo,
-      createdById: admin.id,
-      updatedById: admin.id,
-    },
-  });
-
-  await prisma.page.upsert({
-    where: { id: IDS.page.resources },
-    update: { slug: { tr: 'resources', en: 'resources' } },
-    create: {
-      id: IDS.page.resources,
-      slug: { tr: 'resources', en: 'resources' },
-      status: ContentStatus.PUBLISHED,
-      publishedAt: new Date(),
-      seoMetaId: IDS.seo.resources,
       createdById: admin.id,
       updatedById: admin.id,
     },
@@ -539,7 +531,7 @@ async function main() {
       isVisible: true,
       data: {
         __type: 'video',
-        videoId: 'dQw4w9WgXcQ',
+        videoId: 'Ag2dQLxBzdE',
       },
     },
   });
@@ -569,108 +561,6 @@ async function main() {
       data: {
         __type: 'contact_section',
         formId: IDS.form.contact,
-      },
-    },
-  });
-
-  // About page
-  await prisma.pageComponent.upsert({
-    where: { id: IDS.component.about_hero },
-    update: {
-      data: {
-        __type: 'hero',
-        heading: { tr: 'Hakkımızda', en: 'About Us' },
-        subheading: { tr: 'Kuruluşları siber tehditlerden koruyarak dijital dönüşümlerini güvenle tamamlamalarına yardımcı oluyoruz.', en: 'Helping organizations complete their digital transformation securely by protecting them from cyber threats.' },
-      },
-    },
-    create: {
-      id: IDS.component.about_hero,
-      pageId: IDS.page.about,
-      type: ComponentType.hero,
-      order: 1,
-      isVisible: true,
-      data: {
-        __type: 'hero',
-        heading: { tr: 'Hakkımızda', en: 'About Us' },
-        subheading: { tr: 'Kuruluşları siber tehditlerden koruyarak dijital dönüşümlerini güvenle tamamlamalarına yardımcı oluyoruz.', en: 'Helping organizations complete their digital transformation securely by protecting them from cyber threats.' },
-      },
-    },
-  });
-
-  await prisma.pageComponent.upsert({
-    where: { id: IDS.component.about_features },
-    update: {
-      data: {
-        __type: 'features_grid',
-        items: [
-          {
-            icon: '🎯',
-            title: { tr: 'Misyonumuz', en: 'Our Mission' },
-            description: { tr: 'Kuruluşları siber tehditlerden koruyarak dijital dönüşümlerini güvenle tamamlamalarına yardımcı olmak.', en: 'Helping organizations complete their digital transformation securely by protecting them from cyber threats.' },
-          },
-          {
-            icon: '🌍',
-            title: { tr: 'Vizyonumuz', en: 'Our Vision' },
-            description: { tr: 'Küresel ölçekte tanınan, yerli ve milli bir siber güvenlik şirketi olmak.', en: 'To become a globally recognized domestic cybersecurity company.' },
-          },
-          {
-            icon: '💎',
-            title: { tr: 'Değerlerimiz', en: 'Our Values' },
-            description: { tr: 'Dürüstlük, yenilikçilik, müşteri odaklılık ve sürekli gelişim.', en: 'Integrity, innovation, customer focus, and continuous improvement.' },
-          },
-        ],
-      },
-    },
-    create: {
-      id: IDS.component.about_features,
-      pageId: IDS.page.about,
-      type: ComponentType.features_grid,
-      order: 2,
-      isVisible: true,
-      data: {
-        __type: 'features_grid',
-        items: [
-          {
-            icon: '🎯',
-            title: { tr: 'Misyonumuz', en: 'Our Mission' },
-            description: { tr: 'Kuruluşları siber tehditlerden koruyarak dijital dönüşümlerini güvenle tamamlamalarına yardımcı olmak.', en: 'Helping organizations complete their digital transformation securely by protecting them from cyber threats.' },
-          },
-          {
-            icon: '🌍',
-            title: { tr: 'Vizyonumuz', en: 'Our Vision' },
-            description: { tr: 'Küresel ölçekte tanınan, yerli ve milli bir siber güvenlik şirketi olmak.', en: 'To become a globally recognized domestic cybersecurity company.' },
-          },
-          {
-            icon: '💎',
-            title: { tr: 'Değerlerimiz', en: 'Our Values' },
-            description: { tr: 'Dürüstlük, yenilikçilik, müşteri odaklılık ve sürekli gelişim.', en: 'Integrity, innovation, customer focus, and continuous improvement.' },
-          },
-        ],
-      },
-    },
-  });
-
-  await prisma.pageComponent.upsert({
-    where: { id: IDS.component.about_cta },
-    update: {
-      data: {
-        __type: 'cta',
-        heading: { tr: 'Bizimle Çalışmak İster misiniz?', en: 'Want to Work With Us?' },
-        buttonLabel: { tr: 'İletişime Geçin', en: 'Contact Us' },
-        buttonUrl: '/iletisim',
-      },
-    },
-    create: {
-      id: IDS.component.about_cta,
-      pageId: IDS.page.about,
-      type: ComponentType.cta,
-      order: 3,
-      isVisible: true,
-      data: {
-        __type: 'cta',
-        heading: { tr: 'Bizimle Çalışmak İster misiniz?', en: 'Want to Work With Us?' },
-        buttonLabel: { tr: 'İletişime Geçin', en: 'Contact Us' },
-        buttonUrl: '/iletisim',
       },
     },
   });
@@ -746,84 +636,6 @@ async function main() {
       order: 2,
       isVisible: true,
       data: { __type: 'form_embed', formId: demoForm.id },
-    },
-  });
-
-  // Resources page
-  await prisma.pageComponent.upsert({
-    where: { id: IDS.component.resources_hero },
-    update: {
-      data: {
-        __type: 'hero',
-        heading: { tr: 'Kaynaklar', en: 'Resources' },
-        subheading: { tr: 'Teknik belgeler, vaka çalışmaları ve veri sayfaları ile bilgi edinin.', en: 'Gain knowledge with technical documents, case studies, and datasheets.' },
-      },
-    },
-    create: {
-      id: IDS.component.resources_hero,
-      pageId: IDS.page.resources,
-      type: ComponentType.hero,
-      order: 1,
-      isVisible: true,
-      data: {
-        __type: 'hero',
-        heading: { tr: 'Kaynaklar', en: 'Resources' },
-        subheading: { tr: 'Teknik belgeler, vaka çalışmaları ve veri sayfaları ile bilgi edinin.', en: 'Gain knowledge with technical documents, case studies, and datasheets.' },
-      },
-    },
-  });
-
-  await prisma.pageComponent.upsert({
-    where: { id: IDS.component.resources_features },
-    update: {
-      data: {
-        __type: 'features_grid',
-        items: [
-          { icon: '📄', title: { tr: 'Teknik Belgeler', en: 'Whitepapers' }, description: { tr: 'Siber güvenlik konularında derinlemesine teknik belgeler.', en: 'In-depth technical documents on cybersecurity topics.' } },
-          { icon: '📊', title: { tr: 'Vaka Çalışmaları', en: 'Case Studies' }, description: { tr: 'Müşterilerimizin başarı hikâyelerini inceleyin.', en: 'Explore success stories from our customers.' } },
-          { icon: '📋', title: { tr: 'Veri Sayfaları', en: 'Datasheets' }, description: { tr: 'Ürün ve çözümlerimize ait teknik özellikler.', en: 'Technical specifications for our products and solutions.' } },
-        ],
-      },
-    },
-    create: {
-      id: IDS.component.resources_features,
-      pageId: IDS.page.resources,
-      type: ComponentType.features_grid,
-      order: 2,
-      isVisible: true,
-      data: {
-        __type: 'features_grid',
-        items: [
-          { icon: '📄', title: { tr: 'Teknik Belgeler', en: 'Whitepapers' }, description: { tr: 'Siber güvenlik konularında derinlemesine teknik belgeler.', en: 'In-depth technical documents on cybersecurity topics.' } },
-          { icon: '📊', title: { tr: 'Vaka Çalışmaları', en: 'Case Studies' }, description: { tr: 'Müşterilerimizin başarı hikâyelerini inceleyin.', en: 'Explore success stories from our customers.' } },
-          { icon: '📋', title: { tr: 'Veri Sayfaları', en: 'Datasheets' }, description: { tr: 'Ürün ve çözümlerimize ait teknik özellikler.', en: 'Technical specifications for our products and solutions.' } },
-        ],
-      },
-    },
-  });
-
-  await prisma.pageComponent.upsert({
-    where: { id: IDS.component.resources_cta },
-    update: {
-      data: {
-        __type: 'cta',
-        heading: { tr: 'Daha Fazla Bilgi Almak İster misiniz?', en: 'Want to Learn More?' },
-        buttonLabel: { tr: 'Bize Ulaşın', en: 'Contact Us' },
-        buttonUrl: '/iletisim',
-      },
-    },
-    create: {
-      id: IDS.component.resources_cta,
-      pageId: IDS.page.resources,
-      type: ComponentType.cta,
-      order: 3,
-      isVisible: true,
-      data: {
-        __type: 'cta',
-        heading: { tr: 'Daha Fazla Bilgi Almak İster misiniz?', en: 'Want to Learn More?' },
-        buttonLabel: { tr: 'Bize Ulaşın', en: 'Contact Us' },
-        buttonUrl: '/iletisim',
-      },
     },
   });
 
@@ -1004,6 +816,12 @@ async function main() {
     await upsertProductMedia(productId, mediaId, filename, admin.id);
   }
 
+  // ─── Blog media ───────────────────────────────────────────────────────────────
+
+  for (const [, mediaId, filename] of BLOG_MEDIA_MANIFEST) {
+    await upsertBlogMedia(mediaId, filename, admin.id);
+  }
+
   // ─── Blog posts ───────────────────────────────────────────────────────────────
 
   const category = await prisma.category.upsert({
@@ -1032,25 +850,53 @@ async function main() {
     prisma.seoMeta.upsert({ where: { id: IDS.seo.post5 }, update: {}, create: { id: IDS.seo.post5, metaTitle: { tr: 'JWT Güvenliği', en: 'JWT Security' }, metaDescription: { tr: 'JWT güvenlik rehberi', en: 'JWT security guide' }, robots: 'noindex, nofollow' } }),
   ]);
 
+  const postBodies = {
+    p1: {
+      tr: '## NestJS ile API Geliştirme\n\nNestJS, TypeScript tabanlı, ölçeklenebilir ve bakımı kolay sunucu taraflı uygulamalar oluşturmak için tasarlanmış güçlü bir Node.js framework\'üdür. Angular\'dan ilham alan modüler mimarisi, büyük ekiplerin kod tabanını düzenli tutmasını sağlar.\n\n### Neden NestJS?\n\nNestJS, dependency injection, middleware, guard ve interceptor gibi kurumsal yazılım desenlerini birinci sınıf destek olarak sunar. Bu sayede kimlik doğrulama, yetkilendirme ve loglama gibi kesişen kaygılar kolayca ayrıştırılabilir.\n\n### Temel Kavramlar\n\n**Modüller:** Uygulamayı işlevsel bloklara ayırır. Her özellik kendi modülüne sahip olur.\n\n**Controller\'lar:** HTTP isteklerini karşılar ve servis katmanına yönlendirir.\n\n**Servisler:** İş mantığını barındırır ve controller\'lardan bağımsız test edilebilir.\n\n**DTO\'lar ve Validation Pipe:** Gelen veriyi `class-validator` ile doğrular; geçersiz istekler otomatik olarak reddedilir.\n\n### Sonuç\n\nNestJS, özellikle kurumsal ölçekteki REST ve GraphQL API\'leri için kanıtlanmış bir seçimdir. Güçlü ekosistemi, kapsamlı dökümantasyonu ve TypeScript desteği ile üretim ortamında güvenle kullanılabilir.',
+      en: '## API Development with NestJS\n\nNestJS is a powerful Node.js framework designed for building scalable and maintainable server-side applications with TypeScript. Its modular architecture, inspired by Angular, helps large teams keep their codebase organized.\n\n### Why NestJS?\n\nNestJS offers enterprise software patterns such as dependency injection, middleware, guards, and interceptors as first-class citizens. This makes it easy to separate cross-cutting concerns like authentication, authorization, and logging.\n\n### Core Concepts\n\n**Modules:** Split the application into functional blocks. Each feature owns its module.\n\n**Controllers:** Receive HTTP requests and delegate to the service layer.\n\n**Services:** Hold business logic and can be tested independently of controllers.\n\n**DTOs and Validation Pipe:** Validate incoming data with `class-validator`; invalid requests are automatically rejected.\n\n### Conclusion\n\nNestJS is a proven choice, especially for enterprise-scale REST and GraphQL APIs. With its rich ecosystem, comprehensive documentation, and TypeScript support, it can be confidently used in production.',
+    },
+    p2: {
+      tr: '## Prisma ile Veritabanı Yönetimi\n\nPrisma, modern TypeScript projelerinde veritabanı işlemlerini tip-güvenli ve sezgisel bir şekilde gerçekleştirmeyi sağlayan açık kaynaklı bir ORM\'dir. Geleneksel ORM\'lerin aksine, Prisma şema dosyasından otomatik olarak TypeScript tipleri üretir.\n\n### Prisma\'nın Avantajları\n\n**Tip Güvenliği:** Prisma Client, veritabanı şemasından türetilen tipler sayesinde derleme zamanında hataları yakalar. Yanlış alan adı veya tip uyuşmazlığı geliştirme ortamında hemen fark edilir.\n\n**Okunabilir Sorgular:** Zincirleme API sayesinde karmaşık JOIN\'ler ve filtrelemeler okunabilir bir sözdizimi ile yazılır.\n\n**Migrations:** `prisma migrate dev` komutu şema değişikliklerini otomatik olarak SQL migration\'larına dönüştürür ve versiyon kontrolüne ekler.\n\n### Dikkat Edilmesi Gerekenler\n\nPrisma\'nın `findMany` sorguları varsayılan olarak tüm alanları döndürür. Performans açısından kritik endpoint\'lerde `select` ile yalnızca ihtiyaç duyulan alanlar çekilmelidir.\n\n### Sonuç\n\nPrisma, NestJS ve Next.js gibi modern TypeScript stack\'leriyle mükemmel entegrasyon sunar. Hem küçük projelerde hem de büyük ölçekli uygulamalarda tercih edilen bir araç haline gelmiştir.',
+      en: '## Database Management with Prisma\n\nPrisma is an open-source ORM that enables type-safe and intuitive database operations in modern TypeScript projects. Unlike traditional ORMs, Prisma automatically generates TypeScript types from its schema file.\n\n### Advantages of Prisma\n\n**Type Safety:** Prisma Client catches errors at compile time thanks to types derived from the database schema. Incorrect field names or type mismatches are noticed immediately during development.\n\n**Readable Queries:** Complex JOINs and filters are written with a readable syntax through the chaining API.\n\n**Migrations:** The `prisma migrate dev` command automatically converts schema changes into SQL migrations and adds them to version control.\n\n### Things to Watch Out For\n\nPrisma\'s `findMany` queries return all fields by default. For performance-critical endpoints, only the necessary fields should be fetched using `select`.\n\n### Conclusion\n\nPrisma offers excellent integration with modern TypeScript stacks like NestJS and Next.js. It has become the go-to tool for both small projects and large-scale applications.',
+    },
+    p3: {
+      tr: '## TypeScript İpuçları\n\nTypeScript, JavaScript\'e statik tip sistemi ekleyerek büyük kod tabanlarında hataları erken aşamada yakalamayı sağlar. Doğru kullanıldığında geliştirici deneyimini ve kod kalitesini önemli ölçüde artırır.\n\n### Tip Daraltma (Type Narrowing)\n\n`typeof`, `instanceof` ve özel tip koruyucular (`type guard`) sayesinde TypeScript, bir değişkenin hangi tip olduğunu bağlama göre otomatik olarak daraltır. Bu, gereksiz tür dönüşümlerinden kaçınmanın en temiz yoludur.\n\n### `satisfies` Operatörü\n\nTypeScript 4.9 ile gelen `satisfies`, bir nesnenin belirli bir tipe uyduğunu doğrularken orijinal tipin çıkarımını korur. Bu sayede hem tip güvenliği sağlanır hem de IDE otomatik tamamlama tam anlamıyla çalışır.\n\n### Template Literal Tipleri\n\nString birleştirme desenleri için güçlü bir özellik. Örneğin API rotalarını veya olay isimlerini tip sistemiyle doğrulamak mümkündür.\n\n### `as const` ile Sabit Tipler\n\nBir nesne veya dizi literali `as const` ile işaretlendiğinde TypeScript en dar tipi çıkarır. Konfigürasyon nesneleri ve sabit veri yapıları için idealdir.\n\n### Sonuç\n\nTypeScript\'in sunduğu araçları doğru kullanmak, hem daha az runtime hatası hem de daha anlaşılır bir kod tabanı anlamına gelir.',
+      en: '## TypeScript Tips\n\nTypeScript adds a static type system to JavaScript, enabling early error detection in large codebases. When used correctly, it significantly improves developer experience and code quality.\n\n### Type Narrowing\n\nUsing `typeof`, `instanceof`, and custom type guards, TypeScript automatically narrows down the type of a variable based on context. This is the cleanest way to avoid unnecessary type assertions.\n\n### The `satisfies` Operator\n\nIntroduced in TypeScript 4.9, `satisfies` validates that an object conforms to a type while preserving the original inferred type. This gives both type safety and full IDE autocompletion.\n\n### Template Literal Types\n\nA powerful feature for string concatenation patterns. It\'s possible to validate API routes or event names using the type system.\n\n### Immutable Types with `as const`\n\nWhen an object or array literal is annotated with `as const`, TypeScript infers the narrowest possible type. Ideal for configuration objects and constant data structures.\n\n### Conclusion\n\nUsing TypeScript\'s tools correctly means fewer runtime errors and a more readable codebase.',
+    },
+    p4: {
+      tr: '## Docker ile Deployment\n\nDocker, uygulamaları bağımlılıklarıyla birlikte izole konteynerler içinde paketleyerek "bende çalışıyor" sorununu ortadan kaldırır. Geliştirme, test ve üretim ortamları arasındaki tutarsızlıklar Docker ile minimize edilir.\n\n### Temel Kavramlar\n\n**Image:** Uygulamanın değiştirilemez anlık görüntüsü. Dockerfile ile tanımlanır.\n\n**Konteyner:** Image\'dan oluşturulan çalışan örnek. Birden fazla konteyner aynı image\'dan başlatılabilir.\n\n**Volume:** Konteyner yeniden başlatıldığında verinin kaybolmaması için kalıcı depolama alanı.\n\n### Multi-Stage Build\n\nÜretim image\'larını küçük tutmak için multi-stage build kullanılmalıdır. Derleme araçları yalnızca build aşamasında bulunur; final image yalnızca çalışma zamanı bağımlılıklarını içerir.\n\n### Docker Compose ile Yerel Ortam\n\n`docker-compose.yml` dosyası, API, veritabanı, cache ve diğer servisler arasındaki ilişkiyi tanımlar. Tek komutla (`docker compose up`) tüm ortam ayağa kalkar.\n\n### Sonuç\n\nDocker, modern yazılım geliştirme süreçlerinde vazgeçilmez bir araç haline gelmiştir. CI/CD pipeline\'larına entegrasyonu ve Kubernetes gibi orkestrasyon araçlarıyla uyumu onu üretim ortamları için ideal kılar.',
+      en: '## Deployment with Docker\n\nDocker eliminates the "it works on my machine" problem by packaging applications with their dependencies in isolated containers. Inconsistencies between development, test, and production environments are minimized with Docker.\n\n### Core Concepts\n\n**Image:** An immutable snapshot of the application. Defined with a Dockerfile.\n\n**Container:** A running instance created from an image. Multiple containers can be started from the same image.\n\n**Volume:** Persistent storage so data is not lost when a container restarts.\n\n### Multi-Stage Build\n\nMulti-stage builds should be used to keep production images small. Build tools are only present during the build stage; the final image contains only runtime dependencies.\n\n### Local Environment with Docker Compose\n\nThe `docker-compose.yml` file defines relationships between the API, database, cache, and other services. The entire environment starts with a single command (`docker compose up`).\n\n### Conclusion\n\nDocker has become an indispensable tool in modern software development. Its integration with CI/CD pipelines and compatibility with orchestration tools like Kubernetes makes it ideal for production environments.',
+    },
+    p5: {
+      tr: '## JWT Güvenliği\n\nJSON Web Token (JWT), taraflar arasında bilgiyi güvenli bir şekilde iletmek için kullanılan kompakt ve kendi kendine yeten bir standarttır. Doğru uygulandığında etkili bir kimlik doğrulama mekanizması sağlar; ancak yaygın hatalar ciddi güvenlik açıklarına yol açabilir.\n\n### JWT Yapısı\n\nJWT üç bölümden oluşur: **Header** (algoritma ve token tipi), **Payload** (claim\'ler) ve **Signature** (doğrulama imzası). Her bölüm Base64URL ile kodlanır ve nokta (`.`) ile ayrılır.\n\n### Yaygın Güvenlik Hataları\n\n**`alg: none` saldırısı:** Bazı kütüphaneler imzasız token\'ları kabul eder. Sunucu tarafında algoritma her zaman açıkça doğrulanmalıdır.\n\n**Zayıf secret:** Kısa veya tahmin edilebilir secret\'lar brute-force saldırılarına karşı savunmasızdır. En az 256-bit rastgele bir değer kullanılmalıdır.\n\n**Uzun süreli token\'lar:** Access token\'ların ömrü kısa tutulmalı (15 dakika), uzun süreli oturumlar için refresh token mekanizması kullanılmalıdır.\n\n### Token Saklama\n\nAccess token\'ları `HttpOnly` cookie\'lerde saklamak, XSS saldırılarına karşı `localStorage`\'dan çok daha güvenlidir.\n\n### Sonuç\n\nJWT, doğru yapılandırıldığında güçlü bir kimlik doğrulama çözümüdür. Ancak varsayılan ayarlarla kullanmak yerine, her parametre bilinçli olarak seçilmelidir.',
+      en: '## JWT Security\n\nJSON Web Token (JWT) is a compact, self-contained standard used to securely transmit information between parties. When implemented correctly, it provides an effective authentication mechanism; however, common mistakes can lead to serious security vulnerabilities.\n\n### JWT Structure\n\nJWT consists of three parts: **Header** (algorithm and token type), **Payload** (claims), and **Signature** (verification signature). Each part is Base64URL-encoded and separated by a dot (`.`).\n\n### Common Security Mistakes\n\n**`alg: none` attack:** Some libraries accept unsigned tokens. The algorithm must always be explicitly validated on the server side.\n\n**Weak secret:** Short or predictable secrets are vulnerable to brute-force attacks. At least 256 bits of random entropy should be used.\n\n**Long-lived tokens:** Access token lifetimes should be kept short (15 minutes); a refresh token mechanism should be used for long-lived sessions.\n\n### Token Storage\n\nStoring access tokens in `HttpOnly` cookies is far safer against XSS attacks than `localStorage`.\n\n### Conclusion\n\nJWT is a powerful authentication solution when configured correctly. Rather than using default settings, every parameter should be chosen deliberately.',
+    },
+  };
+
   await prisma.blogPost.upsert({
-    where: { id: IDS.post.p1 }, update: {},
-    create: { id: IDS.post.p1, slug: { tr: 'nestjs-ile-api-gelistirme', en: 'api-development-with-nestjs' }, status: ContentStatus.PUBLISHED, publishedAt: new Date('2026-01-10'), title: { tr: 'NestJS ile API Geliştirme', en: 'API Development with NestJS' }, excerpt: { tr: 'NestJS ile modern API nasıl inşa edilir.', en: 'How to build a modern API with NestJS.' }, body: { tr: '## NestJS\n\nNestJS güçlü bir Node.js framework\'üdür.', en: '## NestJS\n\nNestJS is a powerful Node.js framework.' }, readingTimeMinutes: 5, authorId: admin.id, categoryId: category.id, tags: { connect: [{ id: tag1.id }] }, seoMetaId: seoPosts[0]!.id, createdById: admin.id, updatedById: admin.id },
+    where: { id: IDS.post.p1 },
+    update: { body: postBodies.p1, featuredImageId: IDS.media.blog_post1 },
+    create: { id: IDS.post.p1, slug: { tr: 'nestjs-ile-api-gelistirme', en: 'api-development-with-nestjs' }, status: ContentStatus.PUBLISHED, publishedAt: new Date('2026-01-10'), title: { tr: 'NestJS ile API Geliştirme', en: 'API Development with NestJS' }, excerpt: { tr: 'NestJS ile modern API nasıl inşa edilir.', en: 'How to build a modern API with NestJS.' }, body: postBodies.p1, readingTimeMinutes: 5, authorId: admin.id, categoryId: category.id, tags: { connect: [{ id: tag1.id }] }, featuredImageId: IDS.media.blog_post1, seoMetaId: seoPosts[0]!.id, createdById: admin.id, updatedById: admin.id },
   });
   await prisma.blogPost.upsert({
-    where: { id: IDS.post.p2 }, update: {},
-    create: { id: IDS.post.p2, slug: { tr: 'prisma-ile-veritabani', en: 'database-with-prisma' }, status: ContentStatus.PUBLISHED, publishedAt: new Date('2026-01-20'), title: { tr: 'Prisma ile Veritabanı Yönetimi', en: 'Database Management with Prisma' }, excerpt: { tr: 'Prisma ORM ile tip-güvenli veritabanı işlemleri.', en: 'Type-safe database operations with Prisma ORM.' }, body: { tr: '## Prisma ORM\n\nPrisma modern bir ORM\'dir.', en: '## Prisma ORM\n\nPrisma is a modern ORM.' }, readingTimeMinutes: 7, authorId: admin.id, categoryId: category.id, tags: { connect: [{ id: tag2.id }] }, seoMetaId: seoPosts[1]!.id, createdById: admin.id, updatedById: admin.id },
+    where: { id: IDS.post.p2 },
+    update: { body: postBodies.p2, featuredImageId: IDS.media.blog_post2 },
+    create: { id: IDS.post.p2, slug: { tr: 'prisma-ile-veritabani', en: 'database-with-prisma' }, status: ContentStatus.PUBLISHED, publishedAt: new Date('2026-01-20'), title: { tr: 'Prisma ile Veritabanı Yönetimi', en: 'Database Management with Prisma' }, excerpt: { tr: 'Prisma ORM ile tip-güvenli veritabanı işlemleri.', en: 'Type-safe database operations with Prisma ORM.' }, body: postBodies.p2, readingTimeMinutes: 7, authorId: admin.id, categoryId: category.id, tags: { connect: [{ id: tag2.id }] }, featuredImageId: IDS.media.blog_post2, seoMetaId: seoPosts[1]!.id, createdById: admin.id, updatedById: admin.id },
   });
   await prisma.blogPost.upsert({
-    where: { id: IDS.post.p3 }, update: {},
-    create: { id: IDS.post.p3, slug: { tr: 'typescript-ipuclari', en: 'typescript-tips' }, status: ContentStatus.PUBLISHED, publishedAt: new Date('2026-02-01'), title: { tr: 'TypeScript İpuçları', en: 'TypeScript Tips' }, excerpt: { tr: 'Üretkenliğinizi artıracak TypeScript ipuçları.', en: 'TypeScript tips to boost your productivity.' }, body: { tr: '## TypeScript\n\nTip güvenliği önemlidir.', en: '## TypeScript\n\nType safety matters.' }, readingTimeMinutes: 4, authorId: admin.id, categoryId: category.id, tags: { connect: [{ id: tag1.id }, { id: tag2.id }] }, seoMetaId: seoPosts[2]!.id, createdById: admin.id, updatedById: admin.id },
+    where: { id: IDS.post.p3 },
+    update: { body: postBodies.p3, featuredImageId: IDS.media.blog_post3 },
+    create: { id: IDS.post.p3, slug: { tr: 'typescript-ipuclari', en: 'typescript-tips' }, status: ContentStatus.PUBLISHED, publishedAt: new Date('2026-02-01'), title: { tr: 'TypeScript İpuçları', en: 'TypeScript Tips' }, excerpt: { tr: 'Üretkenliğinizi artıracak TypeScript ipuçları.', en: 'TypeScript tips to boost your productivity.' }, body: postBodies.p3, readingTimeMinutes: 4, authorId: admin.id, categoryId: category.id, tags: { connect: [{ id: tag1.id }, { id: tag2.id }] }, featuredImageId: IDS.media.blog_post3, seoMetaId: seoPosts[2]!.id, createdById: admin.id, updatedById: admin.id },
   });
   await prisma.blogPost.upsert({
-    where: { id: IDS.post.p4 }, update: {},
-    create: { id: IDS.post.p4, slug: { tr: 'docker-ile-deployment', en: 'deployment-with-docker' }, status: ContentStatus.DRAFT, title: { tr: 'Docker ile Deployment', en: 'Deployment with Docker' }, excerpt: { tr: 'Docker ile production deployment rehberi.', en: 'Production deployment guide with Docker.' }, body: { tr: '## Docker\n\nDocker konteynerleri izole eder.', en: '## Docker\n\nDocker isolates containers.' }, readingTimeMinutes: 6, authorId: admin.id, categoryId: category.id, seoMetaId: seoPosts[3]!.id, createdById: admin.id, updatedById: admin.id },
+    where: { id: IDS.post.p4 },
+    update: { body: postBodies.p4, featuredImageId: IDS.media.blog_post4 },
+    create: { id: IDS.post.p4, slug: { tr: 'docker-ile-deployment', en: 'deployment-with-docker' }, status: ContentStatus.DRAFT, title: { tr: 'Docker ile Deployment', en: 'Deployment with Docker' }, excerpt: { tr: 'Docker ile production deployment rehberi.', en: 'Production deployment guide with Docker.' }, body: postBodies.p4, readingTimeMinutes: 6, authorId: admin.id, categoryId: category.id, featuredImageId: IDS.media.blog_post4, seoMetaId: seoPosts[3]!.id, createdById: admin.id, updatedById: admin.id },
   });
   await prisma.blogPost.upsert({
-    where: { id: IDS.post.p5 }, update: {},
-    create: { id: IDS.post.p5, slug: { tr: 'jwt-guvenligi', en: 'jwt-security' }, status: ContentStatus.DRAFT, title: { tr: 'JWT Güvenliği', en: 'JWT Security' }, excerpt: { tr: 'JWT token güvenliği için en iyi pratikler.', en: 'Best practices for JWT token security.' }, body: { tr: '## JWT\n\nToken güvenliği kritiktir.', en: '## JWT\n\nToken security is critical.' }, readingTimeMinutes: 8, authorId: admin.id, seoMetaId: seoPosts[4]!.id, createdById: admin.id, updatedById: admin.id },
+    where: { id: IDS.post.p5 },
+    update: { body: postBodies.p5, featuredImageId: IDS.media.blog_post5 },
+    create: { id: IDS.post.p5, slug: { tr: 'jwt-guvenligi', en: 'jwt-security' }, status: ContentStatus.DRAFT, title: { tr: 'JWT Güvenliği', en: 'JWT Security' }, excerpt: { tr: 'JWT token güvenliği için en iyi pratikler.', en: 'Best practices for JWT token security.' }, body: postBodies.p5, readingTimeMinutes: 8, authorId: admin.id, featuredImageId: IDS.media.blog_post5, seoMetaId: seoPosts[4]!.id, createdById: admin.id, updatedById: admin.id },
   });
 
   // ─── Redirects ────────────────────────────────────────────────────────────────
@@ -1065,13 +911,6 @@ async function main() {
     update: {},
     create: { source: '/blog/eski-yazi', destination: '/blog', statusCode: 302, isActive: true },
   });
-  // Redirect old 'about' slug to 'about-us'
-  await prisma.redirect.upsert({
-    where: { source: '/en/about' },
-    update: {},
-    create: { source: '/en/about', destination: '/en/about-us', statusCode: 301, isActive: true },
-  });
-
   // ─── Navigation items ─────────────────────────────────────────────────────────
 
   // Turkish navigation
@@ -1100,9 +939,8 @@ async function main() {
   const trTopLevel = [
     { id: IDS.nav.tr_resources, label: 'Kaynaklar',    href: '/tr/resources',   order: 2 },
     { id: IDS.nav.tr_blog,      label: 'Blog',         href: '/tr/blog',        order: 3 },
-    { id: IDS.nav.tr_about,     label: 'Hakkımızda',  href: '/tr/hakkimizda',  order: 4 },
-    { id: IDS.nav.tr_contact,   label: 'İletişim',    href: '/tr/iletisim',    order: 5 },
-    { id: IDS.nav.tr_demo,      label: 'Demo Talebi', href: '/tr/demo',        order: 6 },
+    { id: IDS.nav.tr_contact,   label: 'İletişim',    href: '/tr/iletisim',    order: 4 },
+    { id: IDS.nav.tr_demo,      label: 'Demo Talebi', href: '/tr/demo',        order: 5 },
   ];
   for (const item of trTopLevel) {
     await prisma.navigationItem.upsert({
@@ -1136,9 +974,8 @@ async function main() {
   const enTopLevel = [
     { id: IDS.nav.en_resources, label: 'Resources',    href: '/en/resources', order: 2 },
     { id: IDS.nav.en_blog,      label: 'Blog',         href: '/en/blog',      order: 3 },
-    { id: IDS.nav.en_about,     label: 'About Us',     href: '/en/about-us',  order: 4 },
-    { id: IDS.nav.en_contact,   label: 'Contact',      href: '/en/contact',   order: 5 },
-    { id: IDS.nav.en_demo,      label: 'Request Demo', href: '/en/demo',      order: 6 },
+    { id: IDS.nav.en_contact,   label: 'Contact',      href: '/en/contact',   order: 4 },
+    { id: IDS.nav.en_demo,      label: 'Request Demo', href: '/en/demo',      order: 5 },
   ];
   for (const item of enTopLevel) {
     await prisma.navigationItem.upsert({

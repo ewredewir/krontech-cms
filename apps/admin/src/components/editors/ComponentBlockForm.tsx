@@ -16,7 +16,7 @@ import {
   ContactSectionDataSchema,
   KuppingerColeDataSchema,
 } from '@krontech/types';
-import { useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 import type { z } from 'zod';
 
 interface ComponentBlockFormProps {
@@ -24,7 +24,10 @@ interface ComponentBlockFormProps {
   initialData?: Record<string, unknown>;
   onSave: (data: Record<string, unknown>) => void | Promise<void>;
   onCancel: () => void;
+  saveLabel?: string;
 }
+
+const SaveLabelContext = createContext('Save');
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function LocaleFields({ base, register }: { base: string; register: UseFormRegister<any> }) {
@@ -306,7 +309,7 @@ function HeroSliderForm({ initialData, onSave, onCancel }: Omit<ComponentBlockFo
           </div>
           <div>
             <label className="block text-xs font-medium mb-1">Background Media ID (UUID)</label>
-            <input {...register(`slides.${i}.backgroundMediaId`)} className="w-full border px-2 py-1.5 text-sm font-mono focus:outline-none focus:border-primary" placeholder="optional" />
+            <input {...register(`slides.${i}.backgroundMediaId`)} className="w-full border px-2 py-1.5 text-sm font-mono focus:outline-none focus:border-primary" />
           </div>
         </div>
       ))}
@@ -343,8 +346,8 @@ function VideoForm({ initialData, onSave, onCancel }: Omit<ComponentBlockFormPro
         </div>
       )}
       <div>
-        <label className="block text-sm font-medium mb-1">Thumbnail Media ID (UUID, optional)</label>
-        <input {...register('thumbnailMediaId')} className="w-full border px-2 py-1.5 text-sm font-mono focus:outline-none focus:border-primary" placeholder="optional" />
+        <label className="block text-sm font-medium mb-1">Thumbnail Media ID (UUID)</label>
+        <input {...register('thumbnailMediaId')} className="w-full border px-2 py-1.5 text-sm font-mono focus:outline-none focus:border-primary" />
       </div>
       <FormActions onCancel={onCancel} />
     </form>
@@ -453,8 +456,8 @@ function ContactSectionForm({ initialData, onSave, onCancel }: Omit<ComponentBlo
   return (
     <form onSubmit={(e) => { void handleSubmit(d => onSave(d as Record<string, unknown>))(e); }} className="space-y-3">
       <div>
-        <label className="block text-sm font-medium mb-1">Background Media ID (UUID, optional)</label>
-        <input {...register('backgroundMediaId')} className="w-full border px-2 py-1.5 text-sm font-mono focus:outline-none focus:border-primary" placeholder="optional" />
+        <label className="block text-sm font-medium mb-1">Background Media ID (UUID)</label>
+        <input {...register('backgroundMediaId')} className="w-full border px-2 py-1.5 text-sm font-mono focus:outline-none focus:border-primary" />
       </div>
       <div>
         <label htmlFor="csFormId" className="block text-sm font-medium mb-1">Form</label>
@@ -489,8 +492,8 @@ function KuppingerColeForm({ initialData, onSave, onCancel }: Omit<ComponentBloc
         <input {...register('linkHref')} className="w-full border px-2 py-1.5 text-sm focus:outline-none focus:border-primary" placeholder="https://…" />
       </div>
       <div>
-        <label className="block text-sm font-medium mb-1">Badge Media ID (UUID, optional)</label>
-        <input {...register('badgeMediaId')} className="w-full border px-2 py-1.5 text-sm font-mono focus:outline-none focus:border-primary" placeholder="optional" />
+        <label className="block text-sm font-medium mb-1">Badge Media ID (UUID)</label>
+        <input {...register('badgeMediaId')} className="w-full border px-2 py-1.5 text-sm font-mono focus:outline-none focus:border-primary" />
       </div>
       <FormActions onCancel={onCancel} />
     </form>
@@ -506,22 +509,23 @@ function NoConfigForm({ label }: { label: string }) {
 }
 
 function FormActions({ onCancel }: { onCancel: () => void }) {
+  const saveLabel = useContext(SaveLabelContext);
   return (
     <div className="flex gap-2 pt-1">
-      <button type="submit" className="bg-primary text-white px-3 py-1.5 text-sm hover:bg-blue-700">Save</button>
+      <button type="submit" className="bg-primary text-white px-3 py-1.5 text-sm hover:bg-blue-700">{saveLabel}</button>
       <button type="button" onClick={onCancel} className="border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-50">Cancel</button>
     </div>
   );
 }
 
-export function ComponentBlockForm({ type, initialData, onSave, onCancel }: ComponentBlockFormProps) {
+export function ComponentBlockForm({ type, initialData, onSave, onCancel, saveLabel = 'Save' }: ComponentBlockFormProps) {
   // Inject the discriminator field required by PageComponentDataSchema before persisting.
   const wrappedOnSave = (data: Record<string, unknown>) =>
     onSave({ ...data, __type: type });
 
   const props = { initialData, onSave: wrappedOnSave, onCancel };
 
-  switch (type) {
+  const form = (() => { switch (type) {
     case 'hero': return <HeroForm {...props} />;
     case 'text_block': return <TextBlockForm {...props} />;
     case 'cta': return <CtaForm {...props} />;
@@ -542,5 +546,7 @@ export function ComponentBlockForm({ type, initialData, onSave, onCancel }: Comp
         No editor available for component type: <code>{type}</code>
       </div>
     );
-  }
+  } })();
+
+  return <SaveLabelContext.Provider value={saveLabel}>{form}</SaveLabelContext.Provider>;
 }

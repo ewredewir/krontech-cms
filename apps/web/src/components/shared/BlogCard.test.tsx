@@ -21,6 +21,7 @@ const blogPost: BlogPost = {
   slug: { tr: 'test-blog', en: 'test-blog-en' },
   title: { tr: 'Test Blog Başlığı', en: 'Test Blog Title' },
   excerpt: { tr: 'Test özet metni.', en: 'Test excerpt text.' },
+  body: { tr: 'Test içerik metni.', en: 'Test body text.' },
   category: 'blog',
   image: '/test-image.jpg',
   publishedAt: '2024-01-01',

@@ -28,11 +28,18 @@ interface ProductMedia {
   media: MediaItem;
 }
 
+interface ProductFeature {
+  title: { tr: string; en: string };
+  description: { tr: string; en: string };
+}
+
 interface Product {
   id: string;
   name: { tr: string; en: string };
   slug: { tr: string; en: string };
+  tagline: { tr: string; en: string };
   description: { tr: string; en: string };
+  features: ProductFeature[];
   status: 'DRAFT' | 'PUBLISHED' | 'SCHEDULED';
   scheduledAt?: string;
   seo?: Record<string, unknown>;
@@ -73,7 +80,9 @@ export default function EditProductPage({ params }: EditProductProps) {
       await api.patch(`/products/${params.id}`, {
         name: product.name,
         slug: product.slug,
+        tagline: product.tagline,
         description: product.description,
+        features: product.features,
       });
     } catch {
       setError('Save failed');
@@ -82,8 +91,26 @@ export default function EditProductPage({ params }: EditProductProps) {
     }
   };
 
-  const setField = (field: 'name' | 'slug' | 'description', lang: 'tr' | 'en', val: string) => {
+  const setField = (field: 'name' | 'slug' | 'tagline' | 'description', lang: 'tr' | 'en', val: string) => {
     setProduct(p => p ? { ...p, [field]: { ...(p[field] ?? {}), [lang]: val } } : p);
+  };
+
+  const setFeatureField = (idx: number, subfield: 'title' | 'description', lang: 'tr' | 'en', val: string) => {
+    setProduct(p => {
+      if (!p) return p;
+      const features = p.features.map((f, i) =>
+        i === idx ? { ...f, [subfield]: { ...f[subfield], [lang]: val } } : f,
+      );
+      return { ...p, features };
+    });
+  };
+
+  const addFeature = () => {
+    setProduct(p => p ? { ...p, features: [...p.features, { title: { tr: '', en: '' }, description: { tr: '', en: '' } }] } : p);
+  };
+
+  const removeFeature = (idx: number) => {
+    setProduct(p => p ? { ...p, features: p.features.filter((_, i) => i !== idx) } : p);
   };
 
   const handleAddMedia = async (media: MediaItem) => {
@@ -155,12 +182,59 @@ export default function EditProductPage({ params }: EditProductProps) {
                   <input value={product.slug?.[locale] ?? ''} onChange={e => setField('slug', locale, e.target.value)}
                     className="w-full border border-gray-300 px-3 py-2 text-sm font-mono focus:outline-none focus:border-primary" />
                 </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Tagline ({locale.toUpperCase()})</label>
+                  <input value={product.tagline?.[locale] ?? ''} onChange={e => setField('tagline', locale, e.target.value)}
+                    className="w-full border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:border-primary"
+                    placeholder="Short one-liner shown on cards and carousel" />
+                </div>
                 <RichTextEditor
                   label="Description"
                   locale={locale}
                   value={product.description?.[locale] ?? ''}
                   onChange={val => setField('description', locale, val)}
                 />
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium">Features / Bullets</label>
+                    <button type="button" onClick={addFeature} className="text-sm text-primary hover:underline">+ Add feature</button>
+                  </div>
+                  <div className="space-y-3">
+                    {(product.features ?? []).map((feature, idx) => (
+                      <div key={idx} className="border border-gray-200 p-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium text-gray-500">Feature {idx + 1}</span>
+                          <button type="button" onClick={() => removeFeature(idx)} className="text-xs text-red-500 hover:underline">Remove</button>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-xs text-gray-500 mb-1">Title TR</label>
+                            <input value={feature.title.tr} onChange={e => setFeatureField(idx, 'title', 'tr', e.target.value)}
+                              className="w-full border border-gray-300 px-2 py-1.5 text-sm focus:outline-none focus:border-primary" />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-gray-500 mb-1">Title EN</label>
+                            <input value={feature.title.en} onChange={e => setFeatureField(idx, 'title', 'en', e.target.value)}
+                              className="w-full border border-gray-300 px-2 py-1.5 text-sm focus:outline-none focus:border-primary" />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-gray-500 mb-1">Description TR</label>
+                            <input value={feature.description.tr} onChange={e => setFeatureField(idx, 'description', 'tr', e.target.value)}
+                              className="w-full border border-gray-300 px-2 py-1.5 text-sm focus:outline-none focus:border-primary" />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-gray-500 mb-1">Description EN</label>
+                            <input value={feature.description.en} onChange={e => setFeatureField(idx, 'description', 'en', e.target.value)}
+                              className="w-full border border-gray-300 px-2 py-1.5 text-sm focus:outline-none focus:border-primary" />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    {(product.features ?? []).length === 0 && (
+                      <p className="text-xs text-gray-400">No features yet. Click "+ Add feature" to add bullet points shown on the product pages.</p>
+                    )}
+                  </div>
+                </div>
                 {error && <p className="text-red-500 text-sm">{error}</p>}
                 <button type="submit" disabled={saving}
                   className="bg-primary text-white px-4 py-2 text-sm font-medium hover:bg-blue-700 disabled:opacity-50">

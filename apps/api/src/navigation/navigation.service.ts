@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { CacheService } from '../cache/cache.service';
 
 export interface NavItemDto {
   locale: string;
@@ -20,7 +21,14 @@ export interface NavTreeItem {
 
 @Injectable()
 export class NavigationService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cacheService: CacheService,
+  ) {}
+
+  private invalidateNav(): void {
+    void this.cacheService.invalidateTags(['nav-tr', 'nav-en']);
+  }
 
   async findPublic(locale: string): Promise<NavTreeItem[]> {
     const items = await this.prisma.navigationItem.findMany({
@@ -54,7 +62,7 @@ export class NavigationService {
   }
 
   async create(dto: NavItemDto) {
-    return this.prisma.navigationItem.create({
+    const item = await this.prisma.navigationItem.create({
       data: {
         locale: dto.locale,
         label: dto.label,
@@ -64,12 +72,14 @@ export class NavigationService {
         isActive: dto.isActive ?? true,
       },
     });
+    this.invalidateNav();
+    return item;
   }
 
   async update(id: string, dto: Partial<NavItemDto>) {
     const existing = await this.prisma.navigationItem.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Navigation item not found');
-    return this.prisma.navigationItem.update({
+    const updated = await this.prisma.navigationItem.update({
       where: { id },
       data: {
         ...(dto.label !== undefined && { label: dto.label }),
@@ -79,13 +89,15 @@ export class NavigationService {
         ...(dto.isActive !== undefined && { isActive: dto.isActive }),
       },
     });
+    this.invalidateNav();
+    return updated;
   }
 
   async remove(id: string) {
     const existing = await this.prisma.navigationItem.findUnique({ where: { id } });
     if (!existing) throw new NotFoundException('Navigation item not found');
-    // Delete children first
     await this.prisma.navigationItem.deleteMany({ where: { parentId: id } });
     await this.prisma.navigationItem.delete({ where: { id } });
+    this.invalidateNav();
   }
 }
